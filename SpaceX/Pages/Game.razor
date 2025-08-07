@@ -1,7 +1,10 @@
 ﻿@inject IJSRuntime JS
 
-<div @onkeydown="Move" tabindex="0" style="outline: none;" @ref="CanvaContainer" id="CanvaContainer" @onclick="(e) => SendNewBullet(e)">
+<div @onkeydown="Move" style="outline: none;" @ref="CanvaContainer" id="CanvaContainer" @onclick="(e) => SendNewBullet(e)">
 	<BECanvas Width="@_canvasWidth" Height="@_canvasHeight" @ref="_canvasReference"></BECanvas>
+</div>
+<div style="outline: none; position:absolute;" @ref="BulletsContainer" id="BulletsContainer">
+    <BECanvas Width="@_canvasWidth" Height="@_canvasHeight" @ref="_bulletCanvasReference"></BECanvas>
 </div>
 <script>
     window.focusElement = (element) => {
