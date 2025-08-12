@@ -3,7 +3,9 @@ using Blazor.Extensions.Canvas.Canvas2D;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
+using Microsoft.VisualBasic;
 using SpaceX.Models;
+using System.Security.AccessControl;
 using System.Threading;
 
 namespace SpaceX.Pages
@@ -20,6 +22,7 @@ namespace SpaceX.Pages
         private int _canvasWidth = 300;
         private int _canvasHeight = 400;
         private List<Bullet> _bullets = new List<Bullet>();
+        private List<Asteroid> _asteroids = new List<Asteroid>();
         Ship myShip = new Ship
         {
             ID = 1
@@ -37,6 +40,15 @@ namespace SpaceX.Pages
                 await this._context.SetFillStyleAsync("green");
                 await this._context.FillRectAsync(myShip.XPosition, myShip.YPosition, myShip.ShipWidth, myShip.ShipHeight);
                 StateHasChanged();
+                Asteroid asteroid = new Asteroid
+                {
+                    Health = 10,
+                    XPosition = 50,
+                    YPosition = 50,
+                    Speed = 20,
+                    Size = Asteroid.AsteroidSize.Small
+                };
+                _asteroids.Add(asteroid);
                 await UpdateBullets();
             }
         }
@@ -44,16 +56,16 @@ namespace SpaceX.Pages
         {
             switch (e.Key)
             {
-                case "ArrowUp":
+                case "w":
                     myShip.MoveUp(30);
                     break;
-                case "ArrowDown":
+                case "s":
                     myShip.MoveDown(30);
                     break;
-                case "ArrowLeft":
+                case "a":
                     myShip.MoveLeft(30);
                     break;
-                case "ArrowRight":
+                case "d":
                     myShip.MoveRight(30);
                     break;
                 default:
@@ -64,6 +76,12 @@ namespace SpaceX.Pages
             await _context.ClearRectAsync(0, 0, _canvasWidth, _canvasHeight);
             await _context.SetFillStyleAsync("green");
             await _context.FillRectAsync(myShip.XPosition, myShip.YPosition, myShip.ShipWidth, myShip.ShipHeight);
+            foreach (var asteroid in _asteroids)
+            {
+                asteroid.MoveDown();
+                await this._context.SetFillStyleAsync("gray");
+                await this._context.FillRectAsync(asteroid.XPosition, asteroid.YPosition, 20, 20);
+            }
 
             await JS.InvokeVoidAsync("focusElement", CanvaContainer);
         }
@@ -92,14 +110,42 @@ namespace SpaceX.Pages
                 await this._bulletContext.SetStrokeStyleAsync("red");
                 await this._bulletContext.SetLineWidthAsync(5);
                 await this._bulletContext.BeginPathAsync();
-                Console.WriteLine("start x bulleta to: " + bullet.StartXPosition);
-                Console.WriteLine("start y bulleta to: " + bullet.StartYPosition);
                 await this._bulletContext.MoveToAsync(bullet.StartXPosition, bullet.StartYPosition);
                 await this._bulletContext.LineToAsync(bullet.XPosition, bullet.YPosition);
                 await this._bulletContext.StrokeAsync();
             }
-            await Task.Delay(1000);
+            await UpdateShipsAndAsteroids();
+            await Task.Delay(50);
             await UpdateBullets();
+        }
+        private async Task UpdateShipsAndAsteroids()
+        {
+            Console.WriteLine("Ships and asteroids updated");
+            await _context.ClearRectAsync(0, 0, _canvasWidth, _canvasHeight);
+            List<Asteroid> asteroidsToRemove = new List<Asteroid>();
+            foreach (var asteroid in _asteroids)
+            {
+                Console.WriteLine("x position " + asteroid.XPosition);
+                Console.WriteLine("y position " + asteroid.YPosition);
+                asteroid.MoveDown();
+                await this._context.SetFillStyleAsync("gray");
+                await this._context.FillRectAsync(asteroid.XPosition, asteroid.YPosition, 20, 20);
+                if (!asteroid.IsAlive(_canvasHeight, _canvasWidth))
+                {
+                    asteroidsToRemove.Add(asteroid);
+                }
+            }
+            foreach (var asteroid in asteroidsToRemove)
+            {
+                _asteroids.Remove(asteroid);
+                Console.WriteLine("wylecial");
+            }
+            await this._context.SetFillStyleAsync("green");
+            await this._context.FillRectAsync(myShip.XPosition, myShip.YPosition, myShip.ShipHeight, myShip.ShipWidth);
+        }
+        private async Task NextLevel()
+        {
+
         }
     }
 }
