@@ -12,5 +12,9 @@
             this.YPosition -= 10;
             this.StartYPosition -= 10;
         }
+        public bool IsAlive()
+        {
+            return this.YPosition > -20;
+        }
     }
 }

@@ -5,6 +5,8 @@
         public int Health { get; set; }
         public int XPosition { get; set; }
         public int YPosition { get; set; }
+        public int YCenterPosition { get; set; }
+        public int XCenterPosition { get; set; }
         public int Speed { get; set; }
         public AsteroidSize Size { get; set; }
         public enum AsteroidSize
@@ -16,6 +18,12 @@
         public void MoveDown()
         {
             this.YPosition += 10;
+            InitializeAsteroidCenterPosition();
+        }
+        public void InitializeAsteroidCenterPosition()
+        {
+            this.XCenterPosition = this.XPosition + 10;
+            this.YCenterPosition = this.YPosition + 10;
         }
         public bool IsAlive(int height, int width)
         {

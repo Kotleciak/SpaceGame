@@ -14,6 +14,10 @@ namespace SpaceX.Models
         public int LevelOfBulletsSpeed { get; set; } // max 5
         public int ShipWidth { get; set; }
         public int ShipHeight { get; set; }
+        public int YCenterPosition { get; set; }
+        public int XCenterPosition { get; set; }
+        public int MaxXPosition { get; set; }
+        public int MaxYPosition { get; set; }
         public Ship()
         {
             this.XPosition = 10;
@@ -21,6 +25,7 @@ namespace SpaceX.Models
             this.Health = 100;
             this.ShipWidth = 100;
             this.ShipHeight = 100;
+            this.Speed = 15;
         }
         public void ResetShip()
         {
@@ -29,22 +34,44 @@ namespace SpaceX.Models
             this.Health = 100;
             this.ShipWidth = 100;
             this.ShipHeight = 100;
+            this.Speed = 15;
         }
-        public void MoveUp(int distance)
+        public void InitializeShipCenterPosition()
         {
-            this.YPosition -= distance;
+            this.XCenterPosition = this.XPosition + (this.ShipWidth / 2);
+            this.YCenterPosition = this.YPosition + (this.ShipHeight / 2);
         }
-        public void MoveDown(int distance)
+        public void MoveUp()
         {
-            this.YPosition += distance;
+            if (this.YPosition - this.Speed > 0)
+            {
+                this.YPosition -= this.Speed;
+                this.InitializeShipCenterPosition();
+            }
         }
-        public void MoveLeft(int distance)
+        public void MoveDown()
         {
-            this.XPosition -= distance;
+            if(this.YPosition + this.Speed + this.ShipHeight < this.MaxYPosition)
+            {
+                this.YPosition += this.Speed;
+                this.InitializeShipCenterPosition();
+            }
         }
-        public void MoveRight(int distance)
+        public void MoveLeft()
         {
-            this.XPosition += distance;
+            if(this.XPosition - this.Speed > 0)
+            {
+                this.XPosition -= this.Speed;
+                this.InitializeShipCenterPosition();
+            }
+        }
+        public void MoveRight()
+        {
+            if (this.XPosition + this.Speed + this.ShipWidth < this.MaxXPosition)
+            {
+                this.XPosition += this.Speed;
+                this.InitializeShipCenterPosition();
+            }
         }
         public void IncreaseMaxHealth()
         {
