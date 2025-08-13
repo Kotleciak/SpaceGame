@@ -27,6 +27,7 @@ namespace SpaceX.Pages
         {
             ID = 1
         };
+        private GameOptions _gameOptions = new GameOptions();
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
@@ -42,15 +43,17 @@ namespace SpaceX.Pages
                 StateHasChanged();
                 Asteroid asteroid = new Asteroid
                 {
-                    Health = 10,
                     XPosition = 50,
-                    YPosition = 50,
                     Speed = 20,
                     Size = Asteroid.AsteroidSize.Small
                 };
+                asteroid.InitializeAsteroidSize();
+                asteroid.GetRandomXPosition(_canvasWidth);
                 _asteroids.Add(asteroid);
                 myShip.MaxYPosition = _canvasHeight;
                 myShip.MaxXPosition = _canvasWidth;
+                _gameOptions.Level = 1;
+                _gameOptions.Coins = 0;
                 await UpdateBullets();
             }
         }
@@ -126,8 +129,8 @@ namespace SpaceX.Pages
             bulletsToRemove.Clear();
             await UpdateShipsAndAsteroids();
             await Task.Delay(50);
-            await UpdateBullets();
             await CheckIfBulletsTookDamage();
+            await UpdateBullets();
         }
         private async Task UpdateShipsAndAsteroids()
         {
@@ -158,6 +161,7 @@ namespace SpaceX.Pages
         private async Task CheckIfBulletsTookDamage()
         {
             var bulletsToRemove = new HashSet<Bullet>();
+            var asteroidsDestroyed = new HashSet<Asteroid>();
 
             foreach (var asteroid in _asteroids)
             {
@@ -166,8 +170,14 @@ namespace SpaceX.Pages
                 {
                     double distanceSquared = Math.Pow(asteroid.XCenterPosition - bullet.XPosition, 2)
                                           + Math.Pow(asteroid.YCenterPosition - bullet.YPosition, 2);
-                    if (distanceSquared < 3600)
+                    if (distanceSquared < 2500)
                     {
+                        _asteroids.Where(x => x == asteroid).FirstOrDefault().AsteroidHit();
+                        if (asteroid.Health <= 0)
+                        {
+                            asteroidsDestroyed.Add(asteroid);
+                            _gameOptions.Coins += 1;
+                        }
                         bulletsToRemove.Add(bullet);
                     }
                 }
@@ -175,7 +185,6 @@ namespace SpaceX.Pages
 
             foreach (var bullet in bulletsToRemove)
             {
-                Console.WriteLine("got hit!");
                 _bullets.Remove(bullet);
             }
         }
