@@ -69,11 +69,15 @@
             if(this.Health > 3 && this.Health <= 15)
             {
                 this.Size = AsteroidSize.Medium;
+                this.AsteroidHeigth = 40;
+                this.AsteroidWidth = 40;
                 return 10;
             }
             else if(this.Health <= 3)
             {
                 this.Size = AsteroidSize.Small;
+                this.AsteroidHeigth = 20;
+                this.AsteroidWidth = 20;
                 return 5;
             }
             return 0;

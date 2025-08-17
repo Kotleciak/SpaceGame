@@ -16,3 +16,20 @@
 #BulletsContainer {
     z-index: 1;
 }
+
+#StatsContainer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: red;
+}
+#EquipmentDiv{
+    position: absolute;
+    top: 10%;
+    left: 30%;
+    width: 40%;
+    height: 60%;
+    pointer-events: none;
+    background-color: pink;
+}
+

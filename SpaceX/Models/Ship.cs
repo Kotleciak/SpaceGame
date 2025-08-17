@@ -23,18 +23,24 @@ namespace SpaceX.Models
             this.XPosition = 10;
             this.YPosition = 10;
             this.Health = 100;
+            this.MaxHealth = 100;
             this.ShipWidth = 100;
             this.ShipHeight = 100;
             this.Speed = 15;
+            this.LevelOfBulletsDmg = 1;
+            this.LevelOfBulletsSpeed = 1;
         }
         public void ResetShip()
         {
             this.XPosition = 10;
             this.YPosition = 10;
             this.Health = 100;
+            this.MaxHealth = 100;
             this.ShipWidth = 100;
             this.ShipHeight = 100;
             this.Speed = 15;
+            this.LevelOfBulletsDmg = 1;
+            this.LevelOfBulletsSpeed = 1;
         }
         public void InitializeShipCenterPosition()
         {
@@ -115,6 +121,90 @@ namespace SpaceX.Models
                 default:
                     return; // max reached
             }
+        }
+        private int GetMaxHealthPrice()
+        {
+            switch (this.MaxHealth)
+            {
+                case 100:
+                    return 100;
+                case 300:
+                    return 200;
+                case 400:
+                    return 300;
+                case 600:
+                    return 400;
+                case 800:
+                    return 500;
+                case 1000:
+                    return 600;
+                default:
+                    return 0; // max reached
+            }
+        }
+        private int GetSpeedPrice()
+        {
+            switch (this.Speed)
+            {
+                case 15:
+                    return 100;
+                case 20:
+                    return 200;
+                case 25:
+                    return 300;
+                case 30:
+                    return 400;
+                case 35:
+                    return 500;
+                default:
+                    return 0; // max reached
+            }
+        }
+        private int GetLevelOfBulletsDmgPrice()
+        {
+            switch (this.LevelOfBulletsDmg)
+            {
+                case 1:
+                    return 100;
+                case 2:
+                    return 200;
+                case 3:
+                    return 300;
+                case 4:
+                    return 400;
+                case 5:
+                    return 500;
+                default:
+                    return 0; // max reached
+            }
+        }
+        private int GetLevelOfBulletsSpeedPrice()
+        {
+            switch (this.LevelOfBulletsSpeed)
+            {
+                case 1:
+                    return 100;
+                case 2:
+                    return 200;
+                case 3:
+                    return 300;
+                case 4:
+                    return 400;
+                case 5:
+                    return 500;
+                default:
+                    return 0; // max reached
+            }
+        }
+        public int[] GetCurrentShopPrices()
+        {
+            return new int[]
+            {
+                this.GetMaxHealthPrice(),
+                this.GetSpeedPrice(),
+                this.GetLevelOfBulletsDmgPrice(),
+                this.GetLevelOfBulletsSpeedPrice()
+            };
         }
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using Microsoft.VisualBasic;
 using SpaceX.Models;
+using System.Runtime.CompilerServices;
 using System.Security.AccessControl;
 using System.Threading;
 
@@ -21,6 +22,11 @@ namespace SpaceX.Pages
 
         private int _canvasWidth = 300;
         private int _canvasHeight = 400;
+
+        private string _eqDisplayed = "none";
+        private string[] ShopElements = new string[] { "MaxHealth", "Speed", "Damage", "BulletS" };
+        private int _shopElementIndex;
+
         private List<Bullet> _bullets = new List<Bullet>();
         private List<Asteroid> _asteroids = new List<Asteroid>();
         Ship myShip = new Ship()
@@ -44,8 +50,8 @@ namespace SpaceX.Pages
                 Asteroid asteroid = new Asteroid
                 {
                     XPosition = 50,
-                    Speed = 20,
-                    Size = Asteroid.AsteroidSize.Small
+                    Speed = 1,
+                    Size = Asteroid.AsteroidSize.Large
                 };
                 asteroid.InitializeAsteroidSize();
                 asteroid.GetRandomXPosition(_canvasWidth);
@@ -73,8 +79,17 @@ namespace SpaceX.Pages
                 case "d":
                     myShip.MoveRight();
                     break;
-                case "space":
-                    await SendNewBullet();
+                case "e":
+                    await OpenEquipment();
+                    break;
+                case "ArrowUp":
+                    await MoveShopElementUp();
+                    break;
+                case "ArrowDown":
+                    await MoveShopElementDown();
+                    break;
+                case " ":
+                    await CommitShopPurchase();
                     break;
                 default:
                     return;
@@ -87,7 +102,7 @@ namespace SpaceX.Pages
             foreach (var asteroid in _asteroids)
             {
                 await this._context.SetFillStyleAsync("gray");
-                await this._context.FillRectAsync(asteroid.XPosition, asteroid.YPosition, 20, 20);
+                await this._context.FillRectAsync(asteroid.XPosition, asteroid.YPosition, asteroid.AsteroidWidth, asteroid.AsteroidHeigth);
             }
 
             await JS.InvokeVoidAsync("focusElement", CanvaContainer);
@@ -102,7 +117,7 @@ namespace SpaceX.Pages
                 StartXPosition = myShip.XPosition + (myShip.ShipWidth / 2),
                 StartYPosition = myShip.YPosition
             };
-            _bullets.Add(newBullet);            
+            _bullets.Add(newBullet);
         }
         private async Task UpdateBullets()
         {
@@ -110,7 +125,7 @@ namespace SpaceX.Pages
             List<Bullet> bulletsToRemove = new List<Bullet>();
             foreach (var bullet in _bullets)
             {
-                if(!bullet.IsAlive())
+                if (!bullet.IsAlive())
                 {
                     bulletsToRemove.Add(bullet);
                 }
@@ -140,7 +155,7 @@ namespace SpaceX.Pages
             {
                 asteroid.MoveDown();
                 await this._context.SetFillStyleAsync("gray");
-                await this._context.FillRectAsync(asteroid.XPosition, asteroid.YPosition, 20, 20);
+                await this._context.FillRectAsync(asteroid.XPosition, asteroid.YPosition, asteroid.AsteroidWidth, asteroid.AsteroidHeigth);
                 if (!asteroid.IsAlive(_canvasHeight, _canvasWidth))
                 {
                     asteroidsToRemove.Add(asteroid);
@@ -156,7 +171,7 @@ namespace SpaceX.Pages
         }
         private async Task NextLevel()
         {
-
+            Console.WriteLine("Next Level");
         }
         private async Task CheckIfBulletsTookDamage()
         {
@@ -172,7 +187,7 @@ namespace SpaceX.Pages
                                           + Math.Pow(asteroid.YCenterPosition - bullet.YPosition, 2);
                     if (distanceSquared < 2500)
                     {
-                        _asteroids.Where(x => x == asteroid).FirstOrDefault().AsteroidHit();
+                        _gameOptions.Coins = _gameOptions.Coins + _asteroids.Where(x => x == asteroid).FirstOrDefault().AsteroidHit();
                         if (asteroid.Health <= 0)
                         {
                             asteroidsDestroyed.Add(asteroid);
@@ -186,6 +201,64 @@ namespace SpaceX.Pages
             foreach (var bullet in bulletsToRemove)
             {
                 _bullets.Remove(bullet);
+            }
+        }
+        private async Task OpenEquipment()
+        {
+            if(_eqDisplayed == "none")
+            {
+                _shopElementIndex = 0;
+                _eqDisplayed = "block";
+            }
+            else
+            {
+                _eqDisplayed = "none";
+            }
+            await JS.InvokeVoidAsync("ShopElementChanged", ShopElements[_shopElementIndex], myShip.GetCurrentShopPrices());
+        }
+        private async Task MoveShopElementUp()
+        {
+            if (_shopElementIndex >= 1 && _eqDisplayed == "block")
+            {
+                _shopElementIndex--;
+                await JS.InvokeVoidAsync("ShopElementChanged", ShopElements[_shopElementIndex], myShip.GetCurrentShopPrices());
+            }
+        }
+        private async Task MoveShopElementDown()
+        {
+            if (_shopElementIndex < 3 && _eqDisplayed == "block") 
+            {
+                _shopElementIndex++;
+                await JS.InvokeVoidAsync("ShopElementChanged", ShopElements[_shopElementIndex], myShip.GetCurrentShopPrices());
+            }
+        }
+        private async Task CommitShopPurchase()
+        {
+            if (_eqDisplayed == "block")
+            {
+                switch (ShopElements[_shopElementIndex])
+                {
+                    case "MaxHealth":
+                        myShip.IncreaseMaxHealth();
+                        break;
+                    case "Speed":
+                        myShip.IncreaseSpeed();
+                        break;
+                    case "Damage":
+                        if(myShip.LevelOfBulletsDmg + 1 < 5)
+                        {
+                            myShip.LevelOfBulletsDmg++;
+                        }
+                        break;
+                    case "BulletS":
+                        if(myShip.LevelOfBulletsSpeed + 1 < 5)
+                        {
+                            myShip.LevelOfBulletsSpeed++;
+                        }
+                        break;
+                }
+                _gameOptions.Coins -= 10; 
+                await JS.InvokeVoidAsync("ShopElementChanged", ShopElements[_shopElementIndex], myShip.GetCurrentShopPrices());
             }
         }
     }

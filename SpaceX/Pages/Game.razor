@@ -1,10 +1,34 @@
 ﻿@inject IJSRuntime JS
 
+
 <div @onkeydown="Move" style="outline: none;" @ref="CanvaContainer" id="CanvaContainer" tabindex="0" @onclick="SendNewBullet">
-	<BECanvas Width="@_canvasWidth" Height="@_canvasHeight" @ref="_canvasReference"></BECanvas>
+    <BECanvas Width="@_canvasWidth" Height="@_canvasHeight" @ref="_canvasReference"></BECanvas>
+
+    <div id="EquipmentDiv" style="display: @_eqDisplayed">
+        <div class="InventoryShopElement" id="InventoryShopElement-MaxHealth">
+            <span class="InventoryShopElement-Text">Max Health</span>
+            <span class="PriceText" id="PriceText-0"></span>
+        </div>
+        <div class="InventoryShopElement" id="InventoryShopElement-Speed">
+            <span class="InventoryShopElement-Text">Speed</span>
+            <span class="PriceText" id="PriceText-1"></span>
+        </div>
+        <div class="InventoryShopElement" id="InventoryShopElement-Damage">
+            <span class="InventoryShopElement-Text">Damage</span>
+            <span class="PriceText" id="PriceText-2"></span>
+        </div>
+        <div class="InventoryShopElement" id="InventoryShopElement-BulletS">
+            <span class="InventoryShopElement-Text">Bullet's Speed</span>
+            <span class="PriceText" id="PriceText-3"></span>
+		</div>
+    </div>
+
 </div>
 <div style="outline: none; position:absolute;" @ref="BulletsContainer" id="BulletsContainer">
     <BECanvas Width="@_canvasWidth" Height="@_canvasHeight" @ref="_bulletCanvasReference"></BECanvas>
+</div>
+<div id="StatsContainer">
+	<label>Coins: @_gameOptions.Coins</label>
 </div>
 <script>
     window.focusElement = (element) => {
@@ -18,4 +42,13 @@
         let height = document.getElementById("CanvaContainer").offsetWidth;
         return height;
     }
+    window.ShopElementChanged = (currentElement, currentPrices) => {
+        for (let element of document.getElementById("EquipmentDiv").children) {
+            element.style.background = "transparent";
+        }
+        document.getElementById("InventoryShopElement-" + currentElement).style.background = "blue";
+        for (let i = 0; i < currentPrices.length; i++) {
+            document.getElementById("PriceText-" + i).innerText = currentPrices[i];
+		}
+	}
 </script>
