@@ -29,9 +29,14 @@ namespace SpaceX.Pages
 
         private List<Bullet> _bullets = new List<Bullet>();
         private List<Asteroid> _asteroids = new List<Asteroid>();
+        private List<EnemyShip> _enemyShips = new List<EnemyShip>();
         Ship myShip = new Ship()
         {
             ID = 1
+        };
+        EnemyShip enemyShip = new EnemyShip()
+        {
+            
         };
         private GameOptions _gameOptions = new GameOptions();
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -56,8 +61,11 @@ namespace SpaceX.Pages
                 asteroid.InitializeAsteroidSize();
                 asteroid.GetRandomXPosition(_canvasWidth);
                 _asteroids.Add(asteroid);
-                myShip.MaxYPosition = _canvasHeight;
-                myShip.MaxXPosition = _canvasWidth;
+                _enemyShips.Add(enemyShip);
+                myShip.SetMaxPositions(_canvasWidth, _canvasHeight);
+                enemyShip.SetMaxPositions(_canvasWidth, _canvasHeight);
+                myShip.XPosition = (_canvasWidth / 2) - (myShip.ShipWidth / 2);
+                myShip.YPosition = _canvasHeight - myShip.ShipHeight - 10;
                 _gameOptions.Level = 1;
                 _gameOptions.Coins = 0;
                 await UpdateBullets();
@@ -104,6 +112,8 @@ namespace SpaceX.Pages
                 await this._context.SetFillStyleAsync("gray");
                 await this._context.FillRectAsync(asteroid.XPosition, asteroid.YPosition, asteroid.AsteroidWidth, asteroid.AsteroidHeigth);
             }
+            await this._context.SetFillStyleAsync("red");
+            await this._context.FillRectAsync(enemyShip.XPosition, enemyShip.YPosition, enemyShip.ShipHeight, enemyShip.ShipWidth);
 
             await JS.InvokeVoidAsync("focusElement", CanvaContainer);
         }
@@ -168,6 +178,16 @@ namespace SpaceX.Pages
             asteroidsToRemove.Clear();
             await this._context.SetFillStyleAsync("green");
             await this._context.FillRectAsync(myShip.XPosition, myShip.YPosition, myShip.ShipHeight, myShip.ShipWidth);
+            foreach (var enemy in _enemyShips)
+            {
+                if (enemy.YPosition < 30)
+                {
+                    enemy.MoveDown();
+                }
+                enemy.AvoidUser(myShip.XCenterPosition);
+                await this._context.SetFillStyleAsync("red");
+                await this._context.FillRectAsync(enemyShip.XPosition, enemyShip.YPosition, enemyShip.ShipHeight, enemyShip.ShipWidth);
+            }
         }
         private async Task NextLevel()
         {
@@ -177,10 +197,11 @@ namespace SpaceX.Pages
         {
             var bulletsToRemove = new HashSet<Bullet>();
             var asteroidsDestroyed = new HashSet<Asteroid>();
+            var enemyShipsDestroyed = new HashSet<EnemyShip>();
 
             foreach (var asteroid in _asteroids)
             {
-                asteroid.InitializeAsteroidCenterPosition(); // upewnij się, że środek jest aktualny
+                asteroid.InitializeAsteroidCenterPosition();
                 foreach (var bullet in _bullets)
                 {
                     double distanceSquared = Math.Pow(asteroid.XCenterPosition - bullet.XPosition, 2)
@@ -197,10 +218,39 @@ namespace SpaceX.Pages
                     }
                 }
             }
+            foreach (var enemy in _enemyShips)
+            {
+                foreach (var bullet in _bullets)
+                {
+                    double distanceSquared = Math.Pow(enemy.XCenterPosition - bullet.XPosition, 2)
+                                          + Math.Pow(enemy.YCenterPosition - bullet.YPosition, 2);
+                    if (distanceSquared < 2500)
+                    {
+                        enemy.ShipTookDamage(myShip.LevelOfBulletsDmg * 10);
+                        Console.WriteLine("Enemy ship took damage! His health is " + enemy.Health);
+                        if (!enemy.IsAlive())
+                        {
+                            _gameOptions.Coins = _gameOptions.Coins + 20; //I set 20 as placeholder
+                            enemyShipsDestroyed.Add(enemy);
+                            _gameOptions.Coins += 1;
+                        }
+                        bulletsToRemove.Add(bullet);
+                    }
+                }
+            }
+
 
             foreach (var bullet in bulletsToRemove)
             {
                 _bullets.Remove(bullet);
+            }
+            foreach (var asteroid in asteroidsDestroyed)
+            {
+                _asteroids.Remove(asteroid);
+            }
+            foreach (var enemy in enemyShipsDestroyed)
+            {
+                _enemyShips.Remove(enemy);
             }
         }
         private async Task OpenEquipment()

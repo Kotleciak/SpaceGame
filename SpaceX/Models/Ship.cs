@@ -42,6 +42,11 @@ namespace SpaceX.Models
             this.LevelOfBulletsDmg = 1;
             this.LevelOfBulletsSpeed = 1;
         }
+        public void SetMaxPositions(int maxX, int maxY)
+        {
+            this.MaxXPosition = maxX;
+            this.MaxYPosition = maxY;
+        }
         public void InitializeShipCenterPosition()
         {
             this.XCenterPosition = this.XPosition + (this.ShipWidth / 2);
@@ -205,6 +210,14 @@ namespace SpaceX.Models
                 this.GetLevelOfBulletsDmgPrice(),
                 this.GetLevelOfBulletsSpeedPrice()
             };
+        }
+        public void ShipTookDamage(int damage)
+        {
+            this.Health -= damage;
+        }
+        public bool IsAlive()
+        {
+            return this.Health > 0;
         }
     }
 }
