@@ -2,13 +2,16 @@
 {
     public class EnemyShip : Ship
     {
-        public int UserXDestionationPosition { get; set; }
+        public int XDestionationPosition { get; set; }
         public DateTime DateSinceLastAttack { get; set; }
+        public bool IsAttacking { get; set; }
+        public int ThirdCountAttack { get; set; }
         public EnemyShip()
         {
             this.XPosition = 1000;
             this.YPosition = -40;
             this.DateSinceLastAttack = DateTime.Now;
+            this.IsAttacking = false;
         }
         public new void SetMaxPositions(int maxX, int maxY)
         {
@@ -34,20 +37,43 @@
                 this.MoveLeft();
             }
         }
-        public void Rain()
-        {
-            Console.WriteLine("It's here!");
-        }
         public void TimeToAttackEnemyShip()
         {
-            if((DateTime.Now - this.DateSinceLastAttack).TotalSeconds < 5)
+            this.InitializeShipCenterPosition();
+            if (this.XDestionationPosition > this.XCenterPosition)
             {
-                Console.WriteLine("Attack");
+                this.MoveRight();
+                if(this.XDestionationPosition <= this.XCenterPosition)
+                {
+                    this.IsAttacking = false;
+                    this.DateSinceLastAttack = DateTime.Now;
+                }
+            }
+            else if(this.XDestionationPosition < this.XCenterPosition)
+            {
+                this.MoveLeft();
+                if(this.XDestionationPosition >= this.XCenterPosition)
+                {
+                    this.IsAttacking = false;
+                    this.DateSinceLastAttack = DateTime.Now;
+                }
+            }
+        }
+        public void AttackOrAvoid(int UserXPosition)
+        {
+            if(this.IsAttacking)
+            {
+                this.TimeToAttackEnemyShip();
+            }
+            else if((DateTime.Now - this.DateSinceLastAttack).TotalSeconds < 5)
+            {
+                this.AvoidUser(UserXPosition);
             }
             else
             {
-                this.DateSinceLastAttack = DateTime.Now;
-                Console.WriteLine("Date reset");
+                this.IsAttacking = true;
+                this.XDestionationPosition = UserXPosition;
+                this.TimeToAttackEnemyShip();
             }
         }
     }

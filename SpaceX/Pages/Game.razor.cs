@@ -1,13 +1,14 @@
-﻿using Blazor.Extensions;
+﻿using System;
+using System.Runtime.CompilerServices;
+using System.Security.AccessControl;
+using System.Threading;
+using Blazor.Extensions;
 using Blazor.Extensions.Canvas.Canvas2D;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using Microsoft.VisualBasic;
 using SpaceX.Models;
-using System.Runtime.CompilerServices;
-using System.Security.AccessControl;
-using System.Threading;
 
 namespace SpaceX.Pages
 {
@@ -32,11 +33,11 @@ namespace SpaceX.Pages
         private List<EnemyShip> _enemyShips = new List<EnemyShip>();
         Ship myShip = new Ship()
         {
-            ID = 1
+            ID = 0
         };
         EnemyShip enemyShip = new EnemyShip()
         {
-            
+            ID = 1
         };
         private GameOptions _gameOptions = new GameOptions();
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -66,6 +67,7 @@ namespace SpaceX.Pages
                 enemyShip.SetMaxPositions(_canvasWidth, _canvasHeight);
                 myShip.XPosition = (_canvasWidth / 2) - (myShip.ShipWidth / 2);
                 myShip.YPosition = _canvasHeight - myShip.ShipHeight - 10;
+                myShip.InitializeShipCenterPosition();
                 _gameOptions.Level = 1;
                 _gameOptions.Coins = 0;
                 await UpdateBullets();
@@ -117,16 +119,29 @@ namespace SpaceX.Pages
 
             await JS.InvokeVoidAsync("focusElement", CanvaContainer);
         }
-        private async Task SendNewBullet()
+        private async Task SendNewBullet(int ID)
         {
             Bullet newBullet = new Bullet
             {
                 ID = _bullets.Count,
-                XPosition = myShip.XPosition + (myShip.ShipWidth / 2),
-                YPosition = myShip.YPosition - 20,
-                StartXPosition = myShip.XPosition + (myShip.ShipWidth / 2),
-                StartYPosition = myShip.YPosition
+                ShooterID = ID,
+                MaxYPosition = _canvasHeight
             };
+            if(ID == 0)
+            {
+                newBullet.XPosition = myShip.XPosition + (myShip.ShipWidth / 2);
+                newBullet.YPosition = myShip.YPosition - 20;
+                newBullet.StartXPosition = myShip.XPosition + (myShip.ShipWidth / 2);
+                newBullet.StartYPosition = myShip.YPosition;
+            }
+            else
+            {
+                var enemy = _enemyShips.Where(x => x.ID == ID).First();
+                newBullet.XPosition = enemy.XPosition + (enemy.ShipWidth / 2);
+                newBullet.YPosition = enemy.YPosition + 20;
+                newBullet.StartXPosition = enemy.XPosition + (enemy.ShipWidth / 2);
+                newBullet.StartYPosition = enemy.YPosition + enemy.ShipHeight;
+            }
             _bullets.Add(newBullet);
         }
         private async Task UpdateBullets()
@@ -139,8 +154,15 @@ namespace SpaceX.Pages
                 {
                     bulletsToRemove.Add(bullet);
                 }
-                bullet.MoveUp();
-                await this._bulletContext.SetStrokeStyleAsync("red");
+                bullet.Move();
+                if(bullet.ShooterID == 0)
+                {
+                    await this._bulletContext.SetStrokeStyleAsync("green");
+                }
+                else
+                {
+                    await this._bulletContext.SetStrokeStyleAsync("red");
+                }
                 await this._bulletContext.SetLineWidthAsync(5);
                 await this._bulletContext.BeginPathAsync();
                 await this._bulletContext.MoveToAsync(bullet.StartXPosition, bullet.StartYPosition);
@@ -178,15 +200,25 @@ namespace SpaceX.Pages
             asteroidsToRemove.Clear();
             await this._context.SetFillStyleAsync("green");
             await this._context.FillRectAsync(myShip.XPosition, myShip.YPosition, myShip.ShipHeight, myShip.ShipWidth);
-            foreach (var enemy in _enemyShips)
+            foreach(var enemy in _enemyShips)
             {
                 if (enemy.YPosition < 30)
                 {
                     enemy.MoveDown();
                 }
-                enemy.AvoidUser(myShip.XCenterPosition);
+                enemy.AttackOrAvoid(myShip.XCenterPosition);
+                if (enemy.IsAttacking && enemy.ThirdCountAttack == 3)
+                {
+                    await SendNewBullet(enemy.ID);
+                    enemy.ThirdCountAttack = 0;
+                }
+                else if (enemy.IsAttacking)
+                {
+                    enemy.ThirdCountAttack++;
+                    Console.WriteLine(_bullets.Count);
+                }
                 await this._context.SetFillStyleAsync("red");
-                await this._context.FillRectAsync(enemyShip.XPosition, enemyShip.YPosition, enemyShip.ShipHeight, enemyShip.ShipWidth);
+                await this._context.FillRectAsync(enemy.XPosition, enemy.YPosition, enemy.ShipHeight, enemy.ShipWidth);
             }
         }
         private async Task NextLevel()
@@ -199,14 +231,16 @@ namespace SpaceX.Pages
             var asteroidsDestroyed = new HashSet<Asteroid>();
             var enemyShipsDestroyed = new HashSet<EnemyShip>();
 
-            foreach (var asteroid in _asteroids)
+            
+            
+            foreach (var bullet in _bullets)
             {
-                asteroid.InitializeAsteroidCenterPosition();
-                foreach (var bullet in _bullets)
+                foreach (var asteroid in _asteroids)
                 {
+                    asteroid.InitializeAsteroidCenterPosition();
                     double distanceSquared = Math.Pow(asteroid.XCenterPosition - bullet.XPosition, 2)
-                                          + Math.Pow(asteroid.YCenterPosition - bullet.YPosition, 2);
-                    if (distanceSquared < 2500)
+                                              + Math.Pow(asteroid.YCenterPosition - bullet.YPosition, 2);
+                    if (distanceSquared < 2500 && bullet.ShooterID == 0)
                     {
                         _gameOptions.Coins = _gameOptions.Coins + _asteroids.Where(x => x == asteroid).FirstOrDefault().AsteroidHit();
                         if (asteroid.Health <= 0)
@@ -217,14 +251,11 @@ namespace SpaceX.Pages
                         bulletsToRemove.Add(bullet);
                     }
                 }
-            }
-            foreach (var enemy in _enemyShips)
-            {
-                foreach (var bullet in _bullets)
+                foreach (var enemy in _enemyShips)
                 {
                     double distanceSquared = Math.Pow(enemy.XCenterPosition - bullet.XPosition, 2)
                                           + Math.Pow(enemy.YCenterPosition - bullet.YPosition, 2);
-                    if (distanceSquared < 2500)
+                    if (distanceSquared < 2500 && bullet.ShooterID == 0)
                     {
                         enemy.ShipTookDamage(myShip.LevelOfBulletsDmg * 10);
                         Console.WriteLine("Enemy ship took damage! His health is " + enemy.Health);
@@ -236,6 +267,14 @@ namespace SpaceX.Pages
                         }
                         bulletsToRemove.Add(bullet);
                     }
+                }
+                double myShipDistanceSquared = Math.Pow(myShip.XCenterPosition - bullet.XPosition, 2)
+                                          + Math.Pow(myShip.YCenterPosition - bullet.YPosition, 2);
+                if (myShipDistanceSquared < 2500 && bullet.ShooterID != 0)
+                {
+                    myShip.ShipTookDamage(10);
+                    Console.WriteLine("My ship took damage! My health is " + myShip.Health);
+                    bulletsToRemove.Add(bullet);
                 }
             }
 
