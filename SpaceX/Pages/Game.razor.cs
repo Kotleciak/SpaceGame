@@ -24,6 +24,9 @@ namespace SpaceX.Pages
         private int _canvasWidth = 300;
         private int _canvasHeight = 400;
 
+        private bool _isStillTutorial = true;
+        private int _tutorialStep = 0;
+
         private string _eqDisplayed = "none";
         private string[] ShopElements = new string[] { "MaxHealth", "Speed", "Damage", "BulletS" };
         private int _shopElementIndex;
@@ -105,6 +108,9 @@ namespace SpaceX.Pages
                     return;
             }
 
+            if (_isStillTutorial)
+                await NextStepTutorial("moved");
+
 
             await _context.ClearRectAsync(0, 0, _canvasWidth, _canvasHeight);
             await _context.SetFillStyleAsync("green");
@@ -121,6 +127,11 @@ namespace SpaceX.Pages
         }
         private async Task SendNewBullet(int ID)
         {
+            if (_isStillTutorial)
+            {
+                await NextStepTutorial("clicked");
+            }
+
             Bullet newBullet = new Bullet
             {
                 ID = _bullets.Count,
@@ -294,7 +305,11 @@ namespace SpaceX.Pages
         }
         private async Task OpenEquipment()
         {
-            if(_eqDisplayed == "none")
+            if (_isStillTutorial)
+            {
+                await NextStepTutorial("opened");
+            }
+            if (_eqDisplayed == "none")
             {
                 _shopElementIndex = 0;
                 _eqDisplayed = "block";
@@ -348,6 +363,38 @@ namespace SpaceX.Pages
                 }
                 _gameOptions.Coins -= 10; 
                 await JS.InvokeVoidAsync("ShopElementChanged", ShopElements[_shopElementIndex], myShip.GetCurrentShopPrices());
+            }
+        }
+        private async Task NextStepTutorial(string action)
+        {
+            string[] _TutorialSteps = new string[]
+            {
+                "MoveTutorial",
+                "ShootTutorial",
+                "OpenInventoryTutorial",
+                "CloseInventoryTutorial"
+            };
+
+            if (_tutorialStep == 0 && action == "moved")
+            {
+                _tutorialStep++;
+                await JS.InvokeVoidAsync("UpdateTutorial", _TutorialSteps[_tutorialStep - 1], _TutorialSteps[_tutorialStep]);
+            }
+            else if (_tutorialStep == 1 && action == "clicked")
+            {
+                _tutorialStep++;
+                await JS.InvokeVoidAsync("UpdateTutorial", _TutorialSteps[_tutorialStep - 1], _TutorialSteps[_tutorialStep]);
+            }
+            else if (_tutorialStep == 2 && action == "opened")
+            {
+                _tutorialStep++;
+                await JS.InvokeVoidAsync("UpdateTutorial", _TutorialSteps[_tutorialStep - 1], _TutorialSteps[_tutorialStep]);
+            }
+            else if (_tutorialStep == 3 && action == "opened")
+            {
+                _isStillTutorial = false;
+                _tutorialStep++;
+                await JS.InvokeVoidAsync("EndTutorial", _TutorialSteps[_tutorialStep - 1]);
             }
         }
     }

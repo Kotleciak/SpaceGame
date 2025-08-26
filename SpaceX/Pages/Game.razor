@@ -30,6 +30,22 @@
 <div id="StatsContainer">
 	<label>Coins: @_gameOptions.Coins</label>
 </div>
+<div class="TutorialDiv" id="MoveTutorial">
+    <!--move-->
+    <span>Click WSAD to move</span>
+</div>
+<div class="TutorialDiv" id="ShootTutorial">
+    <!--click to shoot-->
+	<span>Left click to shoot</span>
+</div>
+<div class="TutorialDiv" id="OpenInventoryTutorial">
+    <!--click e to open inventory-->
+	<span>Click E to open inventory</span>
+</div>
+<div class="TutorialDiv" id="CloseInventoryTutorial">
+    <!--click e again-->
+    <span>Click E again to close inventory window</span>
+</div>
 <script>
     window.focusElement = (element) => {
         element.focus();
@@ -50,5 +66,12 @@
         for (let i = 0; i < currentPrices.length; i++) {
             document.getElementById("PriceText-" + i).innerText = currentPrices[i];
 		}
+	}
+    window.UpdateTutorial = (previousTutorial, currentTutorial) => {
+		document.getElementById(previousTutorial).remove();
+		document.getElementById(currentTutorial).style.display = "block";
+    }
+    window.EndTutorial = (lastTutorial) => {
+        document.getElementById(lastTutorial).remove();
 	}
 </script>
