@@ -38,10 +38,6 @@ namespace SpaceX.Pages
         {
             ID = 0
         };
-        EnemyShip enemyShip = new EnemyShip()
-        {
-            ID = 1
-        };
         private GameOptions _gameOptions = new GameOptions();
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
@@ -56,28 +52,26 @@ namespace SpaceX.Pages
                 await this._context.SetFillStyleAsync("green");
                 await this._context.FillRectAsync(myShip.XPosition, myShip.YPosition, myShip.ShipWidth, myShip.ShipHeight);
                 StateHasChanged();
-                Asteroid asteroid = new Asteroid
-                {
-                    XPosition = 50,
-                    Speed = 1,
-                    Size = Asteroid.AsteroidSize.Large
-                };
-                asteroid.InitializeAsteroidSize();
-                asteroid.GetRandomXPosition(_canvasWidth);
-                _asteroids.Add(asteroid);
-                _enemyShips.Add(enemyShip);
+                /*
+                
+                */
+                //
                 myShip.SetMaxPositions(_canvasWidth, _canvasHeight);
-                enemyShip.SetMaxPositions(_canvasWidth, _canvasHeight);
+                //
                 myShip.XPosition = (_canvasWidth / 2) - (myShip.ShipWidth / 2);
                 myShip.YPosition = _canvasHeight - myShip.ShipHeight - 10;
                 myShip.InitializeShipCenterPosition();
-                _gameOptions.Level = 1;
+                _gameOptions.Level = 0;
                 _gameOptions.Coins = 0;
                 await UpdateBullets();
             }
         }
         protected async Task Move(KeyboardEventArgs e)
         {
+            if (_isStillTutorial && e.Key != "e")
+                await NextStepTutorial("moved");
+
+
             switch (e.Key)
             {
                 case "w":
@@ -108,8 +102,7 @@ namespace SpaceX.Pages
                     return;
             }
 
-            if (_isStillTutorial)
-                await NextStepTutorial("moved");
+            
 
 
             await _context.ClearRectAsync(0, 0, _canvasWidth, _canvasHeight);
@@ -120,8 +113,11 @@ namespace SpaceX.Pages
                 await this._context.SetFillStyleAsync("gray");
                 await this._context.FillRectAsync(asteroid.XPosition, asteroid.YPosition, asteroid.AsteroidWidth, asteroid.AsteroidHeigth);
             }
-            await this._context.SetFillStyleAsync("red");
-            await this._context.FillRectAsync(enemyShip.XPosition, enemyShip.YPosition, enemyShip.ShipHeight, enemyShip.ShipWidth);
+            foreach (var enemy in _enemyShips)
+            {
+                await this._context.SetFillStyleAsync("red");
+                await this._context.FillRectAsync(enemy.XPosition, enemy.YPosition, enemy.ShipHeight, enemy.ShipWidth);
+            }
 
             await JS.InvokeVoidAsync("focusElement", CanvaContainer);
         }
@@ -231,10 +227,48 @@ namespace SpaceX.Pages
                 await this._context.SetFillStyleAsync("red");
                 await this._context.FillRectAsync(enemy.XPosition, enemy.YPosition, enemy.ShipHeight, enemy.ShipWidth);
             }
+            if(!_isStillTutorial && _asteroids.Count == 0 & _enemyShips.Count == 0)
+            {
+                await NextLevel();
+            }
         }
         private async Task NextLevel()
         {
-            Console.WriteLine("Next Level");
+            Console.WriteLine("Next Level " + _gameOptions.Level);
+            _gameOptions.Level++;
+            if(_gameOptions.Level % 10 == 0)
+            {
+                //Maybe add some kind of boss?
+            }
+            else if(_gameOptions.Level % 2 == 0)
+            {
+                //enemyship
+                EnemyShip enemyShip = new EnemyShip()
+                {
+                    ID = 1
+                };
+                enemyShip.SetMaxPositions(_canvasWidth, _canvasHeight);
+                _enemyShips.Add(enemyShip);
+            }
+            else
+            {
+                //asteroid
+                int numberOfAsteroids = Convert.ToInt32(Math.Ceiling(Math.Log(_gameOptions.Level, 1.3))) + 1;
+                Console.WriteLine("Number of asteroids: " + numberOfAsteroids);
+                for(int i = 0; i < numberOfAsteroids; i++)
+                {
+                    Asteroid asteroid = new Asteroid
+                    {
+                        XPosition = 50,
+                        Speed = 1,
+                        Size = Asteroid.AsteroidSize.Large
+                    };
+                    asteroid.InitializeAsteroidSize();
+                    asteroid.GetRandomXPosition(_canvasWidth);
+                    _asteroids.Add(asteroid);
+                }
+            }
+            StateHasChanged();
         }
         private async Task CheckIfBulletsTookDamage()
         {
@@ -395,6 +429,7 @@ namespace SpaceX.Pages
                 _isStillTutorial = false;
                 _tutorialStep++;
                 await JS.InvokeVoidAsync("EndTutorial", _TutorialSteps[_tutorialStep - 1]);
+                await NextLevel();
             }
         }
     }
