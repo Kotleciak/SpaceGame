@@ -9,21 +9,16 @@
         public int StartXPosition { get; set; }
         public int MaxYPosition { get; set; }
         public int ShooterID { get; set; }
-        //public Belonging ThisBulletBelongsTo { get; set; }
-        //public enum Belonging 
-        //{
-        //    user,
-        //    enemy
-        //} 
+        public int Speed { get; set; }
         private void MoveUp()
         {
-            this.YPosition -= 10;
-            this.StartYPosition -= 10;
+            this.YPosition -= this.Speed;
+            this.StartYPosition -= this.Speed;
         }
         private void MoveDown()
         {
-            this.YPosition += 10;
-            this.StartYPosition += 10;
+            this.YPosition += this.Speed;
+            this.StartYPosition += this.Speed;
         }
         public void Move()
         {

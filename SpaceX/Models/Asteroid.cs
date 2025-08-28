@@ -11,6 +11,8 @@
         public AsteroidSize Size { get; set; }
         public int AsteroidHeigth { get; set; }
         public int AsteroidWidth { get; set; }
+        public DateTime TimeToShowUp { get; set; }
+        public bool IsReleased { get; set; }
         public enum AsteroidSize
         {
             Small,
@@ -19,7 +21,9 @@
         }
         public Asteroid()
         {
-            this.YPosition = -80;
+            Random random = new Random();
+            this.TimeToShowUp.AddSeconds(random.Next(1, 5));
+            this.IsReleased = false;
         }
         public void MoveDown()
         {

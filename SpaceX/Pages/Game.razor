@@ -27,12 +27,21 @@
 <div style="outline: none; position:absolute;" @ref="BulletsContainer" id="BulletsContainer">
     <BECanvas Width="@_canvasWidth" Height="@_canvasHeight" @ref="_bulletCanvasReference"></BECanvas>
 </div>
+
+
 <div id="StatsContainer">
 	<label>Coins: @_gameOptions.Coins</label>
 </div>
-<div id="StatsContainer">
+<div id="StatsContainer" style="top: 10px">
     <label>Level: @_gameOptions.Level</label>
 </div>
+
+<div id="HealthBarContainer">
+    <div id="HealthBar"></div>
+    <span id="HealthBarInformation">@myShip.Health/@myShip.MaxHealth</span>
+</div>
+
+
 <div class="TutorialDiv" id="MoveTutorial">
     <!--move-->
     <span>Click WSAD to move</span>
@@ -49,6 +58,8 @@
     <!--click e again-->
     <span>Click E again to close inventory window</span>
 </div>
+
+
 <script>
     window.focusElement = (element) => {
         element.focus();
@@ -77,4 +88,15 @@
     window.EndTutorial = (lastTutorial) => {
         document.getElementById(lastTutorial).remove();
 	}
+    window.UpdateHealt = (health, maxHealth) => {
+        console.log(200 * health / maxHealth + "px");
+		if(health >= 0)
+        {
+            document.getElementById("HealthBar").style.width = 200 * health / maxHealth + "px";
+        }
+        else
+        {
+            document.getElementById("HealthBar").style.width = "0px";
+		}
+    }
 </script>

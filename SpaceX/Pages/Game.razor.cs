@@ -52,24 +52,25 @@ namespace SpaceX.Pages
                 await this._context.SetFillStyleAsync("green");
                 await this._context.FillRectAsync(myShip.XPosition, myShip.YPosition, myShip.ShipWidth, myShip.ShipHeight);
                 StateHasChanged();
-                /*
-                
-                */
-                //
                 myShip.SetMaxPositions(_canvasWidth, _canvasHeight);
-                //
                 myShip.XPosition = (_canvasWidth / 2) - (myShip.ShipWidth / 2);
                 myShip.YPosition = _canvasHeight - myShip.ShipHeight - 10;
                 myShip.InitializeShipCenterPosition();
                 _gameOptions.Level = 0;
                 _gameOptions.Coins = 0;
+                StateHasChanged();
                 await UpdateBullets();
             }
         }
         protected async Task Move(KeyboardEventArgs e)
         {
-            if (_isStillTutorial && e.Key != "e")
-                await NextStepTutorial("moved");
+            if (_isStillTutorial)
+            {
+                if(e.Key == "w" || e.Key == "a" || e.Key == "s" || e.Key == "d")
+                {
+                    await NextStepTutorial("moved");
+                }
+            }
 
 
             switch (e.Key)
@@ -140,6 +141,7 @@ namespace SpaceX.Pages
                 newBullet.YPosition = myShip.YPosition - 20;
                 newBullet.StartXPosition = myShip.XPosition + (myShip.ShipWidth / 2);
                 newBullet.StartYPosition = myShip.YPosition;
+                newBullet.Speed = 10 * myShip.LevelOfBulletsSpeed;
             }
             else
             {
@@ -148,6 +150,7 @@ namespace SpaceX.Pages
                 newBullet.YPosition = enemy.YPosition + 20;
                 newBullet.StartXPosition = enemy.XPosition + (enemy.ShipWidth / 2);
                 newBullet.StartYPosition = enemy.YPosition + enemy.ShipHeight;
+                newBullet.Speed = 10 + _gameOptions.Level;
             }
             _bullets.Add(newBullet);
         }
@@ -320,6 +323,7 @@ namespace SpaceX.Pages
                     myShip.ShipTookDamage(10);
                     Console.WriteLine("My ship took damage! My health is " + myShip.Health);
                     bulletsToRemove.Add(bullet);
+                    await JS.InvokeVoidAsync("UpdateHealt", myShip.Health, myShip.MaxHealth);
                 }
             }
 
@@ -336,6 +340,7 @@ namespace SpaceX.Pages
             {
                 _enemyShips.Remove(enemy);
             }
+            StateHasChanged();
         }
         private async Task OpenEquipment()
         {
