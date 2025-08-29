@@ -22,8 +22,9 @@
         public Asteroid()
         {
             Random random = new Random();
-            this.TimeToShowUp.AddSeconds(random.Next(1, 5));
+            this.TimeToShowUp = DateTime.Now.AddSeconds(random.Next(1, 5));
             this.IsReleased = false;
+            this.YPosition = -80;
         }
         public void MoveDown()
         {
@@ -85,6 +86,15 @@
                 return 5;
             }
             return 0;
+        }
+        public bool CheckIfReleased()
+        {
+            if(DateTime.Now >= this.TimeToShowUp)
+            {
+                this.IsReleased = true;
+                Console.WriteLine("Released!");
+            }
+            return this.IsReleased;
         }
     }
 }

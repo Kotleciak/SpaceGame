@@ -195,7 +195,12 @@ namespace SpaceX.Pages
             List<Asteroid> asteroidsToRemove = new List<Asteroid>();
             foreach (var asteroid in _asteroids)
             {
-                asteroid.MoveDown();
+                Console.WriteLine("asteroids updated");
+                if(asteroid.CheckIfReleased())
+                {
+                    Console.WriteLine("It goes down");
+                    asteroid.MoveDown();
+                }
                 await this._context.SetFillStyleAsync("gray");
                 await this._context.FillRectAsync(asteroid.XPosition, asteroid.YPosition, asteroid.AsteroidWidth, asteroid.AsteroidHeigth);
                 if (!asteroid.IsAlive(_canvasHeight, _canvasWidth))
