@@ -21,6 +21,8 @@ namespace SpaceX.Pages
         private ElementReference CanvaContainer;
         private ElementReference BulletsContainer;
 
+        private ElementReference _myShipImage;
+
         private int _canvasWidth = 300;
         private int _canvasHeight = 400;
 
@@ -49,8 +51,7 @@ namespace SpaceX.Pages
                 await JS.InvokeVoidAsync("focusElement", CanvaContainer);
                 this._context = await this._canvasReference.CreateCanvas2DAsync();
                 this._bulletContext = await this._bulletCanvasReference.CreateCanvas2DAsync();
-                await this._context.SetFillStyleAsync("green");
-                await this._context.FillRectAsync(myShip.XPosition, myShip.YPosition, myShip.ShipWidth, myShip.ShipHeight);
+                await this._context.DrawImageAsync(_myShipImage, myShip.XPosition, myShip.YPosition, myShip.ShipWidth, myShip.ShipHeight);
                 StateHasChanged();
                 myShip.SetMaxPositions(_canvasWidth, _canvasHeight);
                 myShip.XPosition = (_canvasWidth / 2) - (myShip.ShipWidth / 2);
@@ -107,8 +108,7 @@ namespace SpaceX.Pages
 
 
             await _context.ClearRectAsync(0, 0, _canvasWidth, _canvasHeight);
-            await _context.SetFillStyleAsync("green");
-            await _context.FillRectAsync(myShip.XPosition, myShip.YPosition, myShip.ShipWidth, myShip.ShipHeight);
+            await this._context.DrawImageAsync(_myShipImage, myShip.XPosition, myShip.YPosition, myShip.ShipWidth, myShip.ShipHeight);
             foreach (var asteroid in _asteroids)
             {
                 await this._context.SetFillStyleAsync("gray");
@@ -213,9 +213,8 @@ namespace SpaceX.Pages
                 _asteroids.Remove(asteroid);
             }
             asteroidsToRemove.Clear();
-            await this._context.SetFillStyleAsync("green");
-            await this._context.FillRectAsync(myShip.XPosition, myShip.YPosition, myShip.ShipHeight, myShip.ShipWidth);
-            foreach(var enemy in _enemyShips)
+            await this._context.DrawImageAsync(_myShipImage, myShip.XPosition, myShip.YPosition, myShip.ShipWidth, myShip.ShipHeight);
+            foreach (var enemy in _enemyShips)
             {
                 if (enemy.YPosition < 30)
                 {
