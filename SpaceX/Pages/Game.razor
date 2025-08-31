@@ -96,6 +96,18 @@
 		if(health >= 0)
         {
             document.getElementById("HealthBar").style.width = 200 * health / maxHealth + "px";
+            if(health / maxHealth > 0.6)
+            {
+				document.getElementById("HealthBar").style.backgroundColor = "green";
+            }
+            else if(health / maxHealth > 0.35)
+			{
+                document.getElementById("HealthBar").style.backgroundColor = "orange";
+            }
+            else
+            {
+                document.getElementById("HealthBar").style.backgroundColor = "red";
+			}
         }
         else
         {

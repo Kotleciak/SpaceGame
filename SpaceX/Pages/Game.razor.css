@@ -16,10 +16,6 @@
 #BulletsContainer {
     z-index: 1;
 }
-
-#CoinsContainer {
-    right: 0;
-}
 #EquipmentDiv{
     position: absolute;
     top: 10%;
@@ -46,11 +42,38 @@
 }
 #HealthBar {
     position: absolute;
-    bottom: 10px;
-    left: 10px;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: green;
+    z-index: 1;
+}
+#HealthBarContainer {
+    position: absolute;
+    bottom: 2px;
+    left: 0;
     width: 200px;
     height: 20px;
-    background-color: green;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid yellow;
+    box-sizing: content-box
+}
+#HealthBarInformation {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    color: black;
+    font-family: "Jersey 20", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    pointer-events: none;
 }
 .ResourceImage {
     display: none;
@@ -62,9 +85,25 @@
 }
 #LevelContainer {
     left: 0;
+    border-right: 2px solid yellow;
+}
+#CoinsContainer {
+    right: 0;
+    border-left: 2px solid yellow;
+    width: 150px;
 }
 .StatsContainer {
     position: absolute;
+    height: 30px;
+    width: 90px;
     top: 0;
-    background-color: red;
+    background-color: black;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    color: yellow;
+    font-family: "Jersey 20", sans-serif;
+    border-bottom: 2px solid yellow;
 }
