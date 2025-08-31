@@ -29,10 +29,10 @@
 </div>
 
 
-<div id="StatsContainer">
+<div id="CoinsContainer" class="StatsContainer">
 	<label>Coins: @_gameOptions.Coins</label>
 </div>
-<div id="StatsContainer" style="top: 10px">
+<div id="LevelContainer" class="StatsContainer">
     <label>Level: @_gameOptions.Level</label>
 </div>
 
@@ -86,7 +86,7 @@
 	}
     window.UpdateTutorial = (previousTutorial, currentTutorial) => {
 		document.getElementById(previousTutorial).remove();
-		document.getElementById(currentTutorial).style.display = "block";
+		document.getElementById(currentTutorial).style.display = "flex";
     }
     window.EndTutorial = (lastTutorial) => {
         document.getElementById(lastTutorial).remove();

@@ -13,6 +13,7 @@
         public int AsteroidWidth { get; set; }
         public DateTime TimeToShowUp { get; set; }
         public bool IsReleased { get; set; }
+        public int NumberOfTimesBeingHit { get; set; }
         public enum AsteroidSize
         {
             Small,
@@ -49,17 +50,17 @@
                 case AsteroidSize.Small:
                     this.AsteroidHeigth = 20;
                     this.AsteroidWidth = 20;
-                    this.Health = 3;
+                    this.Health = 30;
                     break;
                 case AsteroidSize.Medium:
                     this.AsteroidHeigth = 40;
                     this.AsteroidWidth = 40;
-                    this.Health = 15;
+                    this.Health = 150;
                     break;
                 case AsteroidSize.Large:
                     this.AsteroidHeigth = 60;
                     this.AsteroidWidth = 60;
-                    this.Health = 30;
+                    this.Health = 300;
                     break;
             }
         }
@@ -68,21 +69,23 @@
             return this.XPosition >= -30 && this.XPosition <= width + 30
                     && this.YPosition <= height + 30 && this.Health >= 0;
         }
-        public int AsteroidHit()
+        public int AsteroidHit(int damage)
         {
-            this.Health--;
-            if(this.Health > 3 && this.Health <= 15)
+            this.Health = this.Health - damage;
+            if(this.Health > 30 && this.Health <= 150)
             {
                 this.Size = AsteroidSize.Medium;
                 this.AsteroidHeigth = 40;
                 this.AsteroidWidth = 40;
+                Console.WriteLine("extra coins " + 10);
                 return 10;
             }
-            else if(this.Health <= 3)
+            else if(this.Health <= 30 && this.Health > 0)
             {
                 this.Size = AsteroidSize.Small;
                 this.AsteroidHeigth = 20;
                 this.AsteroidWidth = 20;
+                Console.WriteLine("extra coins " + 5);
                 return 5;
             }
             return 0;

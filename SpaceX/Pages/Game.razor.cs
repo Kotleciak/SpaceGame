@@ -195,10 +195,8 @@ namespace SpaceX.Pages
             List<Asteroid> asteroidsToRemove = new List<Asteroid>();
             foreach (var asteroid in _asteroids)
             {
-                Console.WriteLine("asteroids updated");
                 if(asteroid.CheckIfReleased())
                 {
-                    Console.WriteLine("It goes down");
                     asteroid.MoveDown();
                 }
                 await this._context.SetFillStyleAsync("gray");
@@ -241,7 +239,6 @@ namespace SpaceX.Pages
         }
         private async Task NextLevel()
         {
-            Console.WriteLine("Next Level " + _gameOptions.Level);
             _gameOptions.Level++;
             if(_gameOptions.Level % 10 == 0)
             {
@@ -261,14 +258,13 @@ namespace SpaceX.Pages
             {
                 //asteroid
                 int numberOfAsteroids = Convert.ToInt32(Math.Ceiling(Math.Log(_gameOptions.Level, 1.3))) + 1;
-                Console.WriteLine("Number of asteroids: " + numberOfAsteroids);
                 for(int i = 0; i < numberOfAsteroids; i++)
                 {
                     Asteroid asteroid = new Asteroid
                     {
                         XPosition = 50,
                         Speed = 1,
-                        Size = Asteroid.AsteroidSize.Large
+                        Size = Asteroid.AsteroidSize.Medium
                     };
                     asteroid.InitializeAsteroidSize();
                     asteroid.GetRandomXPosition(_canvasWidth);
@@ -294,11 +290,13 @@ namespace SpaceX.Pages
                                               + Math.Pow(asteroid.YCenterPosition - bullet.YPosition, 2);
                     if (distanceSquared < 2500 && bullet.ShooterID == 0)
                     {
-                        _gameOptions.Coins = _gameOptions.Coins + _asteroids.Where(x => x == asteroid).FirstOrDefault().AsteroidHit();
+                        _gameOptions.Coins = _gameOptions.Coins + _asteroids.Where(x => x == asteroid).FirstOrDefault().AsteroidHit(myShip.LevelOfBulletsDmg * 10);
+                        Console.WriteLine("this asteroid has: " + asteroid.Health);
+                        asteroid.NumberOfTimesBeingHit++;
+                        Console.WriteLine(asteroid.NumberOfTimesBeingHit);
                         if (asteroid.Health <= 0)
                         {
                             asteroidsDestroyed.Add(asteroid);
-                            _gameOptions.Coins += 1;
                         }
                         bulletsToRemove.Add(bullet);
                     }
@@ -310,7 +308,6 @@ namespace SpaceX.Pages
                     if (distanceSquared < 2500 && bullet.ShooterID == 0)
                     {
                         enemy.ShipTookDamage(myShip.LevelOfBulletsDmg * 10);
-                        Console.WriteLine("Enemy ship took damage! His health is " + enemy.Health);
                         if (!enemy.IsAlive())
                         {
                             _gameOptions.Coins = _gameOptions.Coins + 20; //I set 20 as placeholder
@@ -325,7 +322,6 @@ namespace SpaceX.Pages
                 if (myShipDistanceSquared < 2500 && bullet.ShooterID != 0)
                 {
                     myShip.ShipTookDamage(10);
-                    Console.WriteLine("My ship took damage! My health is " + myShip.Health);
                     bulletsToRemove.Add(bullet);
                     await JS.InvokeVoidAsync("UpdateHealt", myShip.Health, myShip.MaxHealth);
                 }

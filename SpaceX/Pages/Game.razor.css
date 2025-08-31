@@ -17,11 +17,8 @@
     z-index: 1;
 }
 
-#StatsContainer {
-    position: absolute;
-    top: 0;
+#CoinsContainer {
     right: 0;
-    background-color: red;
 }
 #EquipmentDiv{
     position: absolute;
@@ -41,13 +38,15 @@
     bottom: 10%;
     display: none;
     text-align: center;
+    align-items: center;
+    justify-content: center;
 }
 #MoveTutorial {
-    display: block;
+    display: flex;
 }
 #HealthBar {
     position: absolute;
-    top: 10px;
+    bottom: 10px;
     left: 10px;
     width: 200px;
     height: 20px;
@@ -60,4 +59,12 @@
     font-size: 64px;
     font-family: "Jersey 20", sans-serif;
     color: yellow;
+}
+#LevelContainer {
+    left: 0;
+}
+.StatsContainer {
+    position: absolute;
+    top: 0;
+    background-color: red;
 }
