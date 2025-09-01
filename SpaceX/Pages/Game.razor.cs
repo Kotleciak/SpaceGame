@@ -227,7 +227,6 @@ namespace SpaceX.Pages
                 else if (enemy.IsAttacking)
                 {
                     enemy.ThirdCountAttack++;
-                    Console.WriteLine(_bullets.Count);
                 }
                 await this._context.SetFillStyleAsync("red");
                 await this._context.FillRectAsync(enemy.XPosition, enemy.YPosition, enemy.ShipHeight, enemy.ShipWidth);
@@ -291,9 +290,7 @@ namespace SpaceX.Pages
                     if (distanceSquared < 2500 && bullet.ShooterID == 0)
                     {
                         _gameOptions.Coins = _gameOptions.Coins + _asteroids.Where(x => x == asteroid).FirstOrDefault().AsteroidHit(myShip.LevelOfBulletsDmg * 10);
-                        Console.WriteLine("this asteroid has: " + asteroid.Health);
                         asteroid.NumberOfTimesBeingHit++;
-                        Console.WriteLine(asteroid.NumberOfTimesBeingHit);
                         if (asteroid.Health <= 0)
                         {
                             asteroidsDestroyed.Add(asteroid);

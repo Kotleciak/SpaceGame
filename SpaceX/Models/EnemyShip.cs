@@ -72,7 +72,28 @@
             else
             {
                 this.IsAttacking = true;
-                this.XDestionationPosition = UserXPosition;
+                if (UserXPosition > this.XCenterPosition)
+                {
+                    if(UserXPosition + 50 >= this.MaxXPosition)
+                    {
+                        this.XDestionationPosition = UserXPosition - 15;
+                    }
+                    else
+                    {
+                        this.XDestionationPosition = UserXPosition + 20;
+                    }
+                }
+                else
+                {
+                    if (UserXPosition - 60 <= 0)
+                    {
+                        this.XDestionationPosition = UserXPosition + 15;
+                    }
+                    else
+                    {
+                        this.XDestionationPosition = UserXPosition - 20;
+                    }
+                }
                 this.TimeToAttackEnemyShip();
             }
         }
