@@ -21,6 +21,9 @@
             <span class="InventoryShopElement-Text">Bullet's Speed</span>
             <span class="PriceText" id="PriceText-3"></span>
 		</div>
+        <div id="InventoryHintText">
+            <p>Use arrow keys to navigate and space to commit purchase</p>
+        </div>
     </div>
 
 </div>
@@ -77,12 +80,26 @@
     }
     window.ShopElementChanged = (currentElement, currentPrices) => {
         for (let element of document.getElementById("EquipmentDiv").children) {
-            element.style.background = "transparent";
+            element.style.border = "none";
         }
-        document.getElementById("InventoryShopElement-" + currentElement).style.background = "blue";
+        document.getElementById("InventoryShopElement-" + currentElement).style.border = "0.5px solid yellow";
         for (let i = 0; i < currentPrices.length; i++) {
             document.getElementById("PriceText-" + i).innerText = currentPrices[i];
 		}
+        for(let i = 0; i < currentPrices.length; i++)
+        {
+            console.log(parseInt(document.getElementById("PriceText-" + i).textContent));
+			let playerCoins = parseInt(document.getElementById("CoinsContainer").textContent.split(" ")[1]);
+			console.log(playerCoins);
+            if(parseInt(document.getElementById("PriceText-" + i).textContent) > playerCoins)
+            {
+                document.getElementById("PriceText-" + i).style.color = "red";
+            }
+            else
+            {
+                document.getElementById("PriceText-" + i).style.color = "white";
+			}
+        }
 	}
     window.UpdateTutorial = (previousTutorial, currentTutorial) => {
 		document.getElementById(previousTutorial).remove();

@@ -348,7 +348,7 @@ namespace SpaceX.Pages
             if (_eqDisplayed == "none")
             {
                 _shopElementIndex = 0;
-                _eqDisplayed = "block";
+                _eqDisplayed = "flex";
             }
             else
             {
@@ -358,7 +358,7 @@ namespace SpaceX.Pages
         }
         private async Task MoveShopElementUp()
         {
-            if (_shopElementIndex >= 1 && _eqDisplayed == "block")
+            if (_shopElementIndex >= 1 && _eqDisplayed == "flex")
             {
                 _shopElementIndex--;
                 await JS.InvokeVoidAsync("ShopElementChanged", ShopElements[_shopElementIndex], myShip.GetCurrentShopPrices());
@@ -366,7 +366,7 @@ namespace SpaceX.Pages
         }
         private async Task MoveShopElementDown()
         {
-            if (_shopElementIndex < 3 && _eqDisplayed == "block") 
+            if (_shopElementIndex < 3 && _eqDisplayed == "flex") 
             {
                 _shopElementIndex++;
                 await JS.InvokeVoidAsync("ShopElementChanged", ShopElements[_shopElementIndex], myShip.GetCurrentShopPrices());
@@ -374,7 +374,7 @@ namespace SpaceX.Pages
         }
         private async Task CommitShopPurchase()
         {
-            if (_eqDisplayed == "block")
+            if (_eqDisplayed == "flex" && _gameOptions.Coins > myShip.GetCurrentShopPrices()[_shopElementIndex])
             {
                 switch (ShopElements[_shopElementIndex])
                 {
