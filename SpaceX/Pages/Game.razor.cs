@@ -22,6 +22,7 @@ namespace SpaceX.Pages
         private ElementReference BulletsContainer;
 
         private ElementReference _myShipImage;
+        private ElementReference _asteroidImage;
 
         private int _canvasWidth = 300;
         private int _canvasHeight = 400;
@@ -111,8 +112,7 @@ namespace SpaceX.Pages
             await this._context.DrawImageAsync(_myShipImage, myShip.XPosition, myShip.YPosition, myShip.ShipWidth, myShip.ShipHeight);
             foreach (var asteroid in _asteroids)
             {
-                await this._context.SetFillStyleAsync("gray");
-                await this._context.FillRectAsync(asteroid.XPosition, asteroid.YPosition, asteroid.AsteroidWidth, asteroid.AsteroidHeigth);
+                await this._context.DrawImageAsync(_asteroidImage, asteroid.XPosition, asteroid.YPosition, asteroid.AsteroidWidth, asteroid.AsteroidHeigth);
             }
             foreach (var enemy in _enemyShips)
             {
@@ -199,8 +199,7 @@ namespace SpaceX.Pages
                 {
                     asteroid.MoveDown();
                 }
-                await this._context.SetFillStyleAsync("gray");
-                await this._context.FillRectAsync(asteroid.XPosition, asteroid.YPosition, asteroid.AsteroidWidth, asteroid.AsteroidHeigth);
+                await this._context.DrawImageAsync(_asteroidImage, asteroid.XPosition, asteroid.YPosition, asteroid.AsteroidWidth, asteroid.AsteroidHeigth);
                 if (!asteroid.IsAlive(_canvasHeight, _canvasWidth))
                 {
                     asteroidsToRemove.Add(asteroid);
@@ -219,14 +218,10 @@ namespace SpaceX.Pages
                     enemy.MoveDown();
                 }
                 enemy.AttackOrAvoid(myShip.XCenterPosition);
-                if (enemy.IsAttacking && enemy.ThirdCountAttack == 3)
+                if(enemy.ShouldAttack())
                 {
                     await SendNewBullet(enemy.ID);
-                    enemy.ThirdCountAttack = 0;
-                }
-                else if (enemy.IsAttacking)
-                {
-                    enemy.ThirdCountAttack++;
+                    enemy.CountAttack = 0;
                 }
                 await this._context.SetFillStyleAsync("red");
                 await this._context.FillRectAsync(enemy.XPosition, enemy.YPosition, enemy.ShipHeight, enemy.ShipWidth);
@@ -248,7 +243,8 @@ namespace SpaceX.Pages
                 //enemyship
                 EnemyShip enemyShip = new EnemyShip()
                 {
-                    ID = 1
+                    ID = 1,
+                    Class = EnemyShip.EnemyShipClass.Tank,
                 };
                 enemyShip.SetMaxPositions(_canvasWidth, _canvasHeight);
                 _enemyShips.Add(enemyShip);
