@@ -23,6 +23,9 @@ namespace SpaceX.Pages
 
         private ElementReference _myShipImage;
         private ElementReference _asteroidImage;
+        private ElementReference _tankShipImage;
+        private ElementReference _rainShipImage;
+        private ElementReference _bombImage;
 
         private int _canvasWidth = 300;
         private int _canvasHeight = 400;
@@ -37,6 +40,7 @@ namespace SpaceX.Pages
         private List<Bullet> _bullets = new List<Bullet>();
         private List<Asteroid> _asteroids = new List<Asteroid>();
         private List<EnemyShip> _enemyShips = new List<EnemyShip>();
+        private List<Bomb> _bombs = new List<Bomb>();
         Ship myShip = new Ship()
         {
             ID = 0
@@ -116,8 +120,15 @@ namespace SpaceX.Pages
             }
             foreach (var enemy in _enemyShips)
             {
-                await this._context.SetFillStyleAsync("red");
-                await this._context.FillRectAsync(enemy.XPosition, enemy.YPosition, enemy.ShipHeight, enemy.ShipWidth);
+                switch (enemy.Class)
+                {
+                    case EnemyShip.EnemyShipClass.Tank:
+                        await this._context.DrawImageAsync(_tankShipImage, enemy.XPosition, enemy.YPosition, enemy.ShipWidth, enemy.ShipHeight);
+                        break;
+                    case EnemyShip.EnemyShipClass.Basic:
+                        await this._context.DrawImageAsync(_rainShipImage, enemy.XPosition, enemy.YPosition, enemy.ShipWidth, enemy.ShipHeight);
+                        break;
+                }
             }
 
             await JS.InvokeVoidAsync("focusElement", CanvaContainer);
@@ -154,10 +165,44 @@ namespace SpaceX.Pages
             }
             _bullets.Add(newBullet);
         }
+        private async Task SendNewBomb(EnemyShip enemy)
+        {
+            Bomb bomb = new Bomb(myShip.YCenterPosition)
+            {
+                XPosition = enemy.XPosition + (enemy.ShipWidth / 2),
+                YPosition = enemy.YPosition + 20,
+                StartXPosition = enemy.XPosition + (enemy.ShipWidth / 2),
+                StartYPosition = enemy.YPosition + enemy.ShipHeight,
+                Speed = 5 + _gameOptions.Level / 2
+            };
+            _bombs.Add(bomb);
+            Console.WriteLine("bomb send");
+            Console.WriteLine(_bombs.Count);
+        }
+        private async Task ExplodeBomb(Bomb bomb)
+        {
+            double distanceSquared = Math.Pow(myShip.XCenterPosition - bomb.XPosition, 2)
+                                              + Math.Pow(myShip.YCenterPosition - bomb.YPosition, 2);
+            if (distanceSquared < 1700)
+            {
+                myShip.ShipTookDamage(30);
+            }
+            else if (distanceSquared < 2500)
+            {
+                myShip.ShipTookDamage(20);
+            }
+            else if (distanceSquared < 3100)
+            {
+                myShip.ShipTookDamage(10);
+            }
+            await JS.InvokeVoidAsync("UpdateHealt", myShip.Health, myShip.MaxHealth);
+            Console.WriteLine("bomb exploded");
+        }
         private async Task UpdateBullets()
         {
             await _bulletContext.ClearRectAsync(0, 0, _canvasWidth, _canvasHeight);
             List<Bullet> bulletsToRemove = new List<Bullet>();
+            List<Bomb> bombsToRemove = new List<Bomb>();
             foreach (var bullet in _bullets)
             {
                 if (!bullet.IsAlive())
@@ -183,7 +228,34 @@ namespace SpaceX.Pages
             {
                 _bullets.Remove(bullet);
             }
+            foreach (var bomb in _bombs)
+            {
+                if (!bomb.IsAlive())
+                {
+                    Console.WriteLine("tu bedzie blad");
+                    bombsToRemove.Add(bomb);
+                    await ExplodeBomb(bomb);
+                }
+                else
+                {
+                    bomb.Move();
+                    /*
+                    await this._bulletContext.SetStrokeStyleAsync("yellow");
+                    await this._bulletContext.SetLineWidthAsync(5);
+                    await this._bulletContext.BeginPathAsync();
+                    await this._bulletContext.MoveToAsync(bomb.StartXPosition, bomb.StartYPosition);
+                    await this._bulletContext.LineToAsync(bomb.XPosition, bomb.YPosition);
+                    await this._bulletContext.StrokeAsync();
+                    */
+                    await this._bulletContext.DrawImageAsync(_bombImage, bomb.XPosition, bomb.YPosition, 30, 64);
+                }
+            }
+            foreach (var bomb in bombsToRemove)
+            {
+                _bombs.Remove(bomb);
+            }
             bulletsToRemove.Clear();
+            bombsToRemove.Clear();
             await UpdateShipsAndAsteroids();
             await Task.Delay(50);
             await CheckIfBulletsTookDamage();
@@ -217,14 +289,30 @@ namespace SpaceX.Pages
                 {
                     enemy.MoveDown();
                 }
-                enemy.AttackOrAvoid(myShip.XCenterPosition);
+                enemy.AttackOrAvoid(myShip.XCenterPosition, myShip.YCenterPosition);
                 if(enemy.ShouldAttack())
                 {
-                    await SendNewBullet(enemy.ID);
-                    enemy.CountAttack = 0;
+                    switch (enemy.Class)
+                    {
+                        case EnemyShip.EnemyShipClass.Tank:
+                            await SendNewBomb(enemy);
+                            enemy.CountAttack = 0;
+                            break;
+                        case EnemyShip.EnemyShipClass.Basic:
+                            await SendNewBullet(enemy.ID);
+                            enemy.CountAttack = 0;
+                            break;
+                    }
                 }
-                await this._context.SetFillStyleAsync("red");
-                await this._context.FillRectAsync(enemy.XPosition, enemy.YPosition, enemy.ShipHeight, enemy.ShipWidth);
+                switch (enemy.Class)
+                {
+                    case EnemyShip.EnemyShipClass.Tank:
+                        await this._context.DrawImageAsync(_tankShipImage, enemy.XPosition, enemy.YPosition, enemy.ShipWidth, enemy.ShipHeight);
+                        break;
+                    case EnemyShip.EnemyShipClass.Basic:
+                        await this._context.DrawImageAsync(_rainShipImage, enemy.XPosition, enemy.YPosition, enemy.ShipWidth, enemy.ShipHeight);
+                        break;
+                }
             }
             if(!_isStillTutorial && _asteroids.Count == 0 & _enemyShips.Count == 0)
             {
@@ -273,9 +361,10 @@ namespace SpaceX.Pages
             var bulletsToRemove = new HashSet<Bullet>();
             var asteroidsDestroyed = new HashSet<Asteroid>();
             var enemyShipsDestroyed = new HashSet<EnemyShip>();
+            var bombsToRemove = new HashSet<Bomb>();
 
-            
-            
+
+
             foreach (var bullet in _bullets)
             {
                 foreach (var asteroid in _asteroids)
@@ -319,6 +408,27 @@ namespace SpaceX.Pages
                     await JS.InvokeVoidAsync("UpdateHealt", myShip.Health, myShip.MaxHealth);
                 }
             }
+            foreach (var bomb in _bombs)
+            {
+                double myShipDistanceSquared = Math.Pow(myShip.XCenterPosition - bomb.StartXPosition, 2)
+                                          + Math.Pow(myShip.YCenterPosition - bomb.StartYPosition, 2);
+                if (myShipDistanceSquared < 1700)
+                {
+                    myShip.ShipTookDamage(30);
+                    bombsToRemove.Add(bomb);
+                }
+                else if (myShipDistanceSquared < 2500)
+                {
+                    myShip.ShipTookDamage(30);
+                    bombsToRemove.Add(bomb);
+                }
+                else if (myShipDistanceSquared < 3100)
+                {
+                    myShip.ShipTookDamage(30);
+                    bombsToRemove.Add(bomb);
+                }
+                await JS.InvokeVoidAsync("UpdateHealt", myShip.Health, myShip.MaxHealth);
+            }
 
 
             foreach (var bullet in bulletsToRemove)
@@ -332,6 +442,10 @@ namespace SpaceX.Pages
             foreach (var enemy in enemyShipsDestroyed)
             {
                 _enemyShips.Remove(enemy);
+            }
+            foreach (var bomb in bombsToRemove)
+            {
+                _bombs.Remove(bomb);
             }
             StateHasChanged();
         }

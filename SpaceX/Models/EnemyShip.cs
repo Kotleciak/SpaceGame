@@ -26,7 +26,7 @@
             this.MaxXPosition = maxX - 10;
             this.MaxYPosition = maxY;
         }
-        public void AvoidUser(int UserXPosition)
+        public void AvoidUser(int UserXPosition, int UserYPosition)
         {
             if (this.XCenterPosition == UserXPosition)
             {
@@ -44,7 +44,7 @@
             {
                 this.MoveLeft();
             }
-            if(this.YPosition < 35)
+            if(this.YPosition > 35)
             {
                 this.MoveUp();
             }
@@ -117,15 +117,15 @@
                     break;
             }
         }
-        public void AttackOrAvoid(int UserXPosition)
+        public void AttackOrAvoid(int UserXPosition, int UserYPosition)
         {
             if(this.IsAttacking)
             {
-                this.BasicAttack();
+                this.Attack();
             }
             else if((DateTime.Now - this.DateSinceLastAttack).TotalSeconds < 5)
             {
-                this.AvoidUser(UserXPosition);
+                this.AvoidUser(UserXPosition, UserYPosition);
             }
             else
             {
@@ -154,15 +154,13 @@
                 }
                 if(this.Class == EnemyShipClass.Tank)
                 {
-                    this.YDestinationPosition = this.MaxYPosition - 100;
+                    this.YDestinationPosition = UserYPosition - 300;
                 }
                 this.Attack();
             }
         }
         public bool ShouldAttack()
         {
-            Console.WriteLine("This ship ypositon is: " + this.YPosition);
-            Console.WriteLine("Center y is: " + this.YCenterPosition);
             if(this.CountAttack > 3)
             {
                 this.CountAttack = 0;
@@ -174,7 +172,11 @@
                     case EnemyShipClass.Basic:
                         return this.CountAttack == 3;
                     case EnemyShipClass.Tank:
-                        return this.CountAttack < 1;
+                        if(Math.Abs(this.XCenterPosition - this.XDestionationPosition) < 30)
+                        {
+                            return true;
+                        }
+                        break;
                     case EnemyShipClass.Boss:
                         return true;
                     default:
