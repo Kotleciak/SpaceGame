@@ -14,12 +14,20 @@
             Tank,
             Boss //I don't know for sure if I will implement it. I have good concept for it, but I don't know if I will have time to do it.
         }
-        public EnemyShip()
+        public EnemyShip(bool isItTimeForTank)
         {
             this.XPosition = 1000;
             this.YPosition = -40;
             this.DateSinceLastAttack = DateTime.Now;
             this.IsAttacking = false;
+            if (isItTimeForTank)
+            {
+                this.Class = EnemyShip.EnemyShipClass.Tank;
+            }
+            else
+            {
+                this.Class = EnemyShip.EnemyShipClass.Basic;
+            }
         }
         public new void SetMaxPositions(int maxX, int maxY)
         {

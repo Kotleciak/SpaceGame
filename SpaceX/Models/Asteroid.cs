@@ -41,7 +41,6 @@
         {
             Random random = new Random();
             this.XPosition = random.Next(width - this.AsteroidWidth);
-            Console.WriteLine(this.XPosition);
         }
         public void InitializeAsteroidSize()
         {
@@ -77,7 +76,6 @@
                 this.Size = AsteroidSize.Medium;
                 this.AsteroidHeigth = 40;
                 this.AsteroidWidth = 40;
-                Console.WriteLine("extra coins " + 10);
                 return 10;
             }
             else if(this.Health <= 30 && this.Health > 0)
@@ -85,7 +83,6 @@
                 this.Size = AsteroidSize.Small;
                 this.AsteroidHeigth = 20;
                 this.AsteroidWidth = 20;
-                Console.WriteLine("extra coins " + 5);
                 return 5;
             }
             return 0;
@@ -95,7 +92,6 @@
             if(DateTime.Now >= this.TimeToShowUp)
             {
                 this.IsReleased = true;
-                Console.WriteLine("Released!");
             }
             return this.IsReleased;
         }

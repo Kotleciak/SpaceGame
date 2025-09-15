@@ -82,6 +82,7 @@
         let height = document.getElementById("CanvaContainer").offsetWidth;
         return height;
     }
+    /*
     window.ShopElementChanged = (currentElement, currentPrices) => {
         for (let element of document.getElementById("EquipmentDiv").children) {
             element.style.border = "none";
@@ -92,9 +93,7 @@
 		}
         for(let i = 0; i < currentPrices.length; i++)
         {
-            console.log(parseInt(document.getElementById("PriceText-" + i).textContent));
 			let playerCoins = parseInt(document.getElementById("CoinsContainer").textContent.split(" ")[1]);
-			console.log(playerCoins);
             if(parseInt(document.getElementById("PriceText-" + i).textContent) > playerCoins)
             {
                 document.getElementById("PriceText-" + i).style.color = "red";
@@ -105,6 +104,35 @@
 			}
         }
 	}
+    */
+        window.ShopElementChanged = (currentElement, currentPrices) => {
+            console.log("It was involved")
+            for (let i = 0; i < currentPrices.length; i++) {
+                document.getElementById("PriceText-" + i).innerText = currentPrices[i];
+				console.log("PriceText-" + i + " set to " + currentPrices[i]);
+            }
+            for(let i = 0; i < currentPrices.length; i++)
+            {
+				console.log("Checking color for PriceText-" + i);
+                let playerCoins = parseInt(document.getElementById("CoinsContainer").textContent.split(" ")[1]);
+				console.log("Player coins: " + playerCoins);
+                if(parseInt(document.getElementById("PriceText-" + i).textContent) > playerCoins)
+                {
+                    document.getElementById("PriceText-" + i).style.setProperty("color", "red", "important");
+                    console.log("not engoug " + i)
+                }
+                else
+                {
+                    document.getElementById("PriceText-" + i).style.color = "white";
+					console.log("enough " + i)
+                }
+            }
+            for (let element of document.getElementById("EquipmentDiv").children) {
+                element.style.border = "none";
+            }
+            document.getElementById("InventoryShopElement-" + currentElement).style.border = "0.5px solid yellow";
+        };
+
     window.UpdateTutorial = (previousTutorial, currentTutorial) => {
 		document.getElementById(previousTutorial).remove();
 		document.getElementById(currentTutorial).style.display = "flex";
@@ -113,7 +141,6 @@
         document.getElementById(lastTutorial).remove();
 	}
     window.UpdateHealt = (health, maxHealth) => {
-        console.log(200 * health / maxHealth + "px");
 		if(health >= 0)
         {
             document.getElementById("HealthBar").style.width = 200 * health / maxHealth + "px";

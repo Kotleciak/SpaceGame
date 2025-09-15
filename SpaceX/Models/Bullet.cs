@@ -6,7 +6,6 @@
         public int YPosition { get; set; }
         public int XPosition { get; set; }
         public int StartYPosition { get; set; }
-        public int StartXPosition { get; set; }
         public int MaxYPosition { get; set; }
         public int ShooterID { get; set; }
         public int Speed { get; set; }
@@ -34,6 +33,10 @@
         public bool IsAlive()
         {
             return this.YPosition > -20 && this.YPosition < this.MaxYPosition + 30;
+        }
+        public void SetDefaultProperties()
+        {
+
         }
     }
 }

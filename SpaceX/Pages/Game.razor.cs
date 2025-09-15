@@ -30,12 +30,11 @@ namespace SpaceX.Pages
         private int _canvasWidth = 300;
         private int _canvasHeight = 400;
 
-        private bool _isStillTutorial = true;
-        private int _tutorialStep = 0;
-
         private string _eqDisplayed = "none";
         private string[] ShopElements = new string[] { "MaxHealth", "Speed", "Damage", "BulletS" };
         private int _shopElementIndex;
+
+        private bool _isItTimeForTank = false;
 
         private List<Bullet> _bullets = new List<Bullet>();
         private List<Asteroid> _asteroids = new List<Asteroid>();
@@ -62,23 +61,19 @@ namespace SpaceX.Pages
                 myShip.XPosition = (_canvasWidth / 2) - (myShip.ShipWidth / 2);
                 myShip.YPosition = _canvasHeight - myShip.ShipHeight - 10;
                 myShip.InitializeShipCenterPosition();
-                _gameOptions.Level = 0;
-                _gameOptions.Coins = 0;
                 StateHasChanged();
                 await UpdateBullets();
             }
         }
         protected async Task Move(KeyboardEventArgs e)
         {
-            if (_isStillTutorial)
+            if (_gameOptions.IsTutorial)
             {
                 if(e.Key == "w" || e.Key == "a" || e.Key == "s" || e.Key == "d")
                 {
                     await NextStepTutorial("moved");
                 }
             }
-
-
             switch (e.Key)
             {
                 case "w":
@@ -135,7 +130,7 @@ namespace SpaceX.Pages
         }
         private async Task SendNewBullet(int ID)
         {
-            if (_isStillTutorial)
+            if (_gameOptions.IsTutorial)
             {
                 await NextStepTutorial("clicked");
             }
@@ -150,7 +145,6 @@ namespace SpaceX.Pages
             {
                 newBullet.XPosition = myShip.XPosition + (myShip.ShipWidth / 2);
                 newBullet.YPosition = myShip.YPosition - 20;
-                newBullet.StartXPosition = myShip.XPosition + (myShip.ShipWidth / 2);
                 newBullet.StartYPosition = myShip.YPosition;
                 newBullet.Speed = 10 * myShip.LevelOfBulletsSpeed;
             }
@@ -159,7 +153,6 @@ namespace SpaceX.Pages
                 var enemy = _enemyShips.Where(x => x.ID == ID).First();
                 newBullet.XPosition = enemy.XPosition + (enemy.ShipWidth / 2);
                 newBullet.YPosition = enemy.YPosition + 20;
-                newBullet.StartXPosition = enemy.XPosition + (enemy.ShipWidth / 2);
                 newBullet.StartYPosition = enemy.YPosition + enemy.ShipHeight;
                 newBullet.Speed = 10 + _gameOptions.Level;
             }
@@ -167,17 +160,11 @@ namespace SpaceX.Pages
         }
         private async Task SendNewBomb(EnemyShip enemy)
         {
-            Bomb bomb = new Bomb(myShip.YCenterPosition)
+            Bomb bomb = new Bomb(myShip.YCenterPosition, enemy)
             {
-                XPosition = enemy.XPosition + (enemy.ShipWidth / 2),
-                YPosition = enemy.YPosition + 20,
-                StartXPosition = enemy.XPosition + (enemy.ShipWidth / 2),
-                StartYPosition = enemy.YPosition + enemy.ShipHeight,
-                Speed = 5 + _gameOptions.Level / 2
+                Speed = 5 + _gameOptions.Level / 2                                                  //I will have to change this if I want boss
             };
             _bombs.Add(bomb);
-            Console.WriteLine("bomb send");
-            Console.WriteLine(_bombs.Count);
         }
         private async Task ExplodeBomb(Bomb bomb)
         {
@@ -196,7 +183,6 @@ namespace SpaceX.Pages
                 myShip.ShipTookDamage(10);
             }
             await JS.InvokeVoidAsync("UpdateHealt", myShip.Health, myShip.MaxHealth);
-            Console.WriteLine("bomb exploded");
         }
         private async Task UpdateBullets()
         {
@@ -220,7 +206,7 @@ namespace SpaceX.Pages
                 }
                 await this._bulletContext.SetLineWidthAsync(5);
                 await this._bulletContext.BeginPathAsync();
-                await this._bulletContext.MoveToAsync(bullet.StartXPosition, bullet.StartYPosition);
+                await this._bulletContext.MoveToAsync(bullet.XPosition, bullet.StartYPosition);
                 await this._bulletContext.LineToAsync(bullet.XPosition, bullet.YPosition);
                 await this._bulletContext.StrokeAsync();
             }
@@ -232,22 +218,13 @@ namespace SpaceX.Pages
             {
                 if (!bomb.IsAlive())
                 {
-                    Console.WriteLine("tu bedzie blad");
                     bombsToRemove.Add(bomb);
                     await ExplodeBomb(bomb);
                 }
                 else
                 {
                     bomb.Move();
-                    /*
-                    await this._bulletContext.SetStrokeStyleAsync("yellow");
-                    await this._bulletContext.SetLineWidthAsync(5);
-                    await this._bulletContext.BeginPathAsync();
-                    await this._bulletContext.MoveToAsync(bomb.StartXPosition, bomb.StartYPosition);
-                    await this._bulletContext.LineToAsync(bomb.XPosition, bomb.YPosition);
-                    await this._bulletContext.StrokeAsync();
-                    */
-                    await this._bulletContext.DrawImageAsync(_bombImage, bomb.XPosition, bomb.YPosition, 30, 64);
+                    await this._bulletContext.DrawImageAsync(_bombImage, bomb.XPosition, bomb.YPosition, 30, 64); // I didn't know what width and height should I chose so placed random size
                 }
             }
             foreach (var bomb in bombsToRemove)
@@ -314,7 +291,7 @@ namespace SpaceX.Pages
                         break;
                 }
             }
-            if(!_isStillTutorial && _asteroids.Count == 0 & _enemyShips.Count == 0)
+            if(!_gameOptions.IsTutorial && _asteroids.Count == 0 & _enemyShips.Count == 0)
             {
                 await NextLevel();
             }
@@ -329,11 +306,11 @@ namespace SpaceX.Pages
             else if(_gameOptions.Level % 2 == 0)
             {
                 //enemyship
-                EnemyShip enemyShip = new EnemyShip()
+                EnemyShip enemyShip = new EnemyShip(_isItTimeForTank)
                 {
                     ID = 1,
-                    Class = EnemyShip.EnemyShipClass.Tank,
                 };
+                _isItTimeForTank = !_isItTimeForTank;
                 enemyShip.SetMaxPositions(_canvasWidth, _canvasHeight);
                 _enemyShips.Add(enemyShip);
             }
@@ -394,7 +371,6 @@ namespace SpaceX.Pages
                         {
                             _gameOptions.Coins = _gameOptions.Coins + 20; //I set 20 as placeholder
                             enemyShipsDestroyed.Add(enemy);
-                            _gameOptions.Coins += 1;
                         }
                         bulletsToRemove.Add(bullet);
                     }
@@ -410,19 +386,9 @@ namespace SpaceX.Pages
             }
             foreach (var bomb in _bombs)
             {
-                double myShipDistanceSquared = Math.Pow(myShip.XCenterPosition - bomb.StartXPosition, 2)
+                double myShipDistanceSquared = Math.Pow(myShip.XCenterPosition - bomb.XPosition, 2)
                                           + Math.Pow(myShip.YCenterPosition - bomb.StartYPosition, 2);
-                if (myShipDistanceSquared < 1700)
-                {
-                    myShip.ShipTookDamage(30);
-                    bombsToRemove.Add(bomb);
-                }
-                else if (myShipDistanceSquared < 2500)
-                {
-                    myShip.ShipTookDamage(30);
-                    bombsToRemove.Add(bomb);
-                }
-                else if (myShipDistanceSquared < 3100)
+                if (myShipDistanceSquared < 3100)
                 {
                     myShip.ShipTookDamage(30);
                     bombsToRemove.Add(bomb);
@@ -451,7 +417,7 @@ namespace SpaceX.Pages
         }
         private async Task OpenEquipment()
         {
-            if (_isStillTutorial)
+            if (_gameOptions.IsTutorial)
             {
                 await NextStepTutorial("opened");
             }
@@ -486,6 +452,7 @@ namespace SpaceX.Pages
         {
             if (_eqDisplayed == "flex" && _gameOptions.Coins > myShip.GetCurrentShopPrices()[_shopElementIndex])
             {
+                _gameOptions.Coins -= myShip.GetCurrentShopPrices()[_shopElementIndex];
                 switch (ShopElements[_shopElementIndex])
                 {
                     case "MaxHealth":
@@ -506,42 +473,25 @@ namespace SpaceX.Pages
                             myShip.LevelOfBulletsSpeed++;
                         }
                         break;
-                }
-                _gameOptions.Coins -= 10; 
+                } 
                 await JS.InvokeVoidAsync("ShopElementChanged", ShopElements[_shopElementIndex], myShip.GetCurrentShopPrices());
             }
         }
         private async Task NextStepTutorial(string action)
         {
-            string[] _TutorialSteps = new string[]
+            
+            List<string> result = _gameOptions.NextTuroialStep(action);
+            if(result.Count > 0)
             {
-                "MoveTutorial",
-                "ShootTutorial",
-                "OpenInventoryTutorial",
-                "CloseInventoryTutorial"
-            };
-
-            if (_tutorialStep == 0 && action == "moved")
-            {
-                _tutorialStep++;
-                await JS.InvokeVoidAsync("UpdateTutorial", _TutorialSteps[_tutorialStep - 1], _TutorialSteps[_tutorialStep]);
-            }
-            else if (_tutorialStep == 1 && action == "clicked")
-            {
-                _tutorialStep++;
-                await JS.InvokeVoidAsync("UpdateTutorial", _TutorialSteps[_tutorialStep - 1], _TutorialSteps[_tutorialStep]);
-            }
-            else if (_tutorialStep == 2 && action == "opened")
-            {
-                _tutorialStep++;
-                await JS.InvokeVoidAsync("UpdateTutorial", _TutorialSteps[_tutorialStep - 1], _TutorialSteps[_tutorialStep]);
-            }
-            else if (_tutorialStep == 3 && action == "opened")
-            {
-                _isStillTutorial = false;
-                _tutorialStep++;
-                await JS.InvokeVoidAsync("EndTutorial", _TutorialSteps[_tutorialStep - 1]);
-                await NextLevel();
+                if(_gameOptions.TutorialStep == 4)
+                {
+                    await JS.InvokeVoidAsync("EndTutorial", result[0]);
+                    await NextLevel();
+                }
+                else
+                {
+                    await JS.InvokeVoidAsync("UpdateTutorial", result[0], result[1]);
+                }
             }
         }
     }
