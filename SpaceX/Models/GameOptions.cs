@@ -55,28 +55,24 @@
                 this.TutorialStep++;
                 result.Add(_TutorialSteps[this.TutorialStep - 1]);
                 result.Add(_TutorialSteps[this.TutorialStep]);
-                Console.WriteLine(result[0] + result[1]);
             }
             else if(action == "clicked" && this.TutorialStep == 1)
             {
                 this.TutorialStep++;
                 result.Add(_TutorialSteps[this.TutorialStep - 1]);
                 result.Add(_TutorialSteps[this.TutorialStep]);
-                Console.WriteLine(result[0] + result[1]);
             }
             else if (action == "opened" && this.TutorialStep == 2)
             {
                 this.TutorialStep++;
                 result.Add(_TutorialSteps[this.TutorialStep - 1]);
                 result.Add(_TutorialSteps[this.TutorialStep]);
-                Console.WriteLine(result[0] + result[1]);
             }
             else if (action == "opened" && this.TutorialStep == 3)
             {
                 this.TutorialStep++;
                 result.Add(_TutorialSteps[this.TutorialStep - 1]);
                 this.IsTutorial = false;
-                Console.WriteLine(result[0]);
             }
             return result;
         }

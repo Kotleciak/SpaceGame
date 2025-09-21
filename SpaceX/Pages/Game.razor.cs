@@ -26,6 +26,7 @@ namespace SpaceX.Pages
         private ElementReference _tankShipImage;
         private ElementReference _rainShipImage;
         private ElementReference _bombImage;
+        private ElementReference _bossImage;
 
         private int _canvasWidth = 300;
         private int _canvasHeight = 400;
@@ -40,6 +41,7 @@ namespace SpaceX.Pages
         private List<Asteroid> _asteroids = new List<Asteroid>();
         private List<EnemyShip> _enemyShips = new List<EnemyShip>();
         private List<Bomb> _bombs = new List<Bomb>();
+        private List<Boss> _bosses = new List<Boss>();
         Ship myShip = new Ship()
         {
             ID = 0
@@ -125,10 +127,14 @@ namespace SpaceX.Pages
                         break;
                 }
             }
+            foreach (var boss in _bosses)
+            {
+                await this._context.DrawImageAsync(_bossImage, boss.XPosition, boss.YPosition, boss.ShipWidth, boss.ShipHeight);
+            }
 
             await JS.InvokeVoidAsync("focusElement", CanvaContainer);
         }
-        private async Task SendNewBullet(int ID)
+        private async Task SendNewBullet(int ID, string who)
         {
             if (_gameOptions.IsTutorial)
             {
@@ -148,12 +154,20 @@ namespace SpaceX.Pages
                 newBullet.StartYPosition = myShip.YPosition;
                 newBullet.Speed = 10 * myShip.LevelOfBulletsSpeed;
             }
-            else
+            else if(who == "enemy")
             {
                 var enemy = _enemyShips.Where(x => x.ID == ID).First();
                 newBullet.XPosition = enemy.XPosition + (enemy.ShipWidth / 2);
                 newBullet.YPosition = enemy.YPosition + 20;
                 newBullet.StartYPosition = enemy.YPosition + enemy.ShipHeight;
+                newBullet.Speed = 10 + _gameOptions.Level;
+            }
+            else
+            {
+                var boss = _bosses.Where(x => x.ID == ID).First();
+                newBullet.XPosition = boss.XPosition + (boss.ShipWidth / 2);
+                newBullet.YPosition = boss.YPosition + 40;
+                newBullet.StartYPosition = boss.YPosition + boss.ShipHeight + 20;
                 newBullet.Speed = 10 + _gameOptions.Level;
             }
             _bullets.Add(newBullet);
@@ -276,7 +290,7 @@ namespace SpaceX.Pages
                             enemy.CountAttack = 0;
                             break;
                         case EnemyShip.EnemyShipClass.Basic:
-                            await SendNewBullet(enemy.ID);
+                            await SendNewBullet(enemy.ID, "enemy");
                             enemy.CountAttack = 0;
                             break;
                     }
@@ -291,19 +305,135 @@ namespace SpaceX.Pages
                         break;
                 }
             }
-            if(!_gameOptions.IsTutorial && _asteroids.Count == 0 & _enemyShips.Count == 0)
+            foreach(var boss in _bosses)
+            {
+                await this._context.DrawImageAsync(_bossImage, boss.XPosition, boss.YPosition, boss.ShipWidth, boss.ShipHeight);
+            }
+            if (!_gameOptions.IsTutorial && _asteroids.Count == 0 & _enemyShips.Count == 0 && _bosses.Count == 0)
             {
                 await NextLevel();
+            }
+            if(_gameOptions.Level % 2 == 0 && _bosses.Count > 0)
+            {
+                int stage = Boss.AttackPhase;
+                Console.WriteLine(stage);
+                foreach(var boss in _bosses)
+                {
+                    switch (stage)
+                    {
+                        case 0:                //avoiding user
+                            boss.AvoidUser(myShip.XCenterPosition, myShip.YCenterPosition);
+                            boss.IsItTimeForRainAttack(_bosses.Count);
+                            break;
+                        case 1:                  //finding correct position if there is more than 1 boss
+                            string result = boss.FindCorrectPosition(_bosses.ElementAt(0).XCenterPosition, _bosses.ElementAt(1).XCenterPosition);
+                            if(result == "Ship1")
+                            {
+                                _bosses.ElementAt(0).MoveRight();
+                            }
+                            else if(result == "Ship2")
+                            {
+                                _bosses.ElementAt(0).MoveRight();
+                            }
+                            else
+                            {
+                                Boss.AttackPhase = 2;
+                                _bosses.ElementAt(0).XDestionationPosition = _bosses.ElementAt(0).MaxXPosition - 20;
+                                _bosses.ElementAt(1).XDestionationPosition = _bosses.ElementAt(1).MaxXPosition - 80;
+                            }
+                            break;
+                        case 2:                        //attacking to left side
+                            if(boss.CountAttack >= 4)
+                            {
+                                await SendNewBullet(boss.ID, "boss");
+                                boss.CountAttack = 0;
+                            }
+                            else
+                            {
+                                boss.CountAttack++;
+                            }
+                            if(boss.MoveToDestinationPosition())
+                            {
+                                Boss.AttackPhase = 3;
+                                _bosses.ElementAt(0).XDestionationPosition = 20;
+                                _bosses.ElementAt(1).XDestionationPosition = 80;
+                            }
+                            break;
+                        case 3:                        //attacking to right side
+                            if (boss.CountAttack >= 4)
+                            {
+                                await SendNewBullet(boss.ID, "boss");
+                                boss.CountAttack = 0;
+                            }
+                            else
+                            {
+                                boss.CountAttack++;
+                            }
+                            if (boss.MoveToDestinationPosition())
+                            {
+                                Boss.AttackPhase = 4;
+                                _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).XDestionationPosition = myShip.XCenterPosition;
+                                _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).YDestinationPosition = myShip.YCenterPosition - 300;
+                            }
+                            break;
+                        case 4:                        //attacking by bombs and avoiding
+                            _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).TankAttack();
+                            _bosses.ElementAt(Boss.ForWhichBossIsItTimeToAvoidUser).AvoidUser(myShip.XCenterPosition, myShip.YCenterPosition);
+                            if (Math.Abs(_bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).XCenterPosition - _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).XDestionationPosition) < 30)
+                            {
+                                await SendNewBomb(_bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs));
+                                Boss.AttackPhase = 5;
+                                _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).XDestionationPosition = _bosses.ElementAt(Boss.ForWhichBossIsItTimeToAvoidUser).XCenterPosition;
+                                _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).YDestinationPosition = _bosses.ElementAt(Boss.ForWhichBossIsItTimeToAvoidUser).YPosition;
+                            }
+                            break;
+                        case 5:                        //back to first boss
+                            if(_bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).GoBackToStartYPosition())
+                            {
+                                Boss.AttackPhase = 0;
+                                if(Boss.ForWhichBossIsItTimeToDropBombs == 0)
+                                {
+                                    Boss.ForWhichBossIsItTimeToDropBombs = 1;
+                                    Boss.ForWhichBossIsItTimeToAvoidUser = 0;
+                                }
+                                else
+                                {
+                                    Boss.ForWhichBossIsItTimeToDropBombs = 0;
+                                    Boss.ForWhichBossIsItTimeToAvoidUser = 1;
+                                }
+                            }
+                            break;
+                        default:
+
+                            break;
+                    }
+                }
             }
         }
         private async Task NextLevel()
         {
             _gameOptions.Level++;
-            if(_gameOptions.Level % 10 == 0)
+            if(_gameOptions.Level % 2 == 0)   //for testing I changed it from 10 to 2
             {
                 //Maybe add some kind of boss?
+                Boss boss = new Boss(_isItTimeForTank)
+                {
+                    ID = 1,
+                    XPosition = (_canvasWidth / 2) - 75,
+                    YPosition = 5
+                };
+                boss.SetMaxPositions(_canvasWidth, _canvasHeight);
+                _bosses.Add(boss);
+                Boss boss2 = new Boss(_isItTimeForTank)
+                {
+                    ID = 2,
+                    XPosition = (_canvasWidth / 2) + 75,
+                    YPosition = 5
+                };
+                boss2.SetMaxPositions(_canvasWidth, _canvasHeight);
+                _bosses.Add(boss2);
             }
-            else if(_gameOptions.Level % 2 == 0)
+            else if(_gameOptions.Level % 20 == 0)     //changed form 2 to 20
             {
                 //enemyship
                 EnemyShip enemyShip = new EnemyShip(_isItTimeForTank)
@@ -320,12 +450,7 @@ namespace SpaceX.Pages
                 int numberOfAsteroids = Convert.ToInt32(Math.Ceiling(Math.Log(_gameOptions.Level, 1.3))) + 1;
                 for(int i = 0; i < numberOfAsteroids; i++)
                 {
-                    Asteroid asteroid = new Asteroid
-                    {
-                        XPosition = 50,
-                        Speed = 1,
-                        Size = Asteroid.AsteroidSize.Medium
-                    };
+                    Asteroid asteroid = new Asteroid(_gameOptions.Level);
                     asteroid.InitializeAsteroidSize();
                     asteroid.GetRandomXPosition(_canvasWidth);
                     _asteroids.Add(asteroid);
@@ -349,7 +474,7 @@ namespace SpaceX.Pages
                     asteroid.InitializeAsteroidCenterPosition();
                     double distanceSquared = Math.Pow(asteroid.XCenterPosition - bullet.XPosition, 2)
                                               + Math.Pow(asteroid.YCenterPosition - bullet.YPosition, 2);
-                    if (distanceSquared < 2500 && bullet.ShooterID == 0)
+                    if (distanceSquared < asteroid.SquaredRadius && bullet.ShooterID == 0)
                     {
                         _gameOptions.Coins = _gameOptions.Coins + _asteroids.Where(x => x == asteroid).FirstOrDefault().AsteroidHit(myShip.LevelOfBulletsDmg * 10);
                         asteroid.NumberOfTimesBeingHit++;

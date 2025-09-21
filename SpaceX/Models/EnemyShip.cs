@@ -57,22 +57,22 @@
                 this.MoveUp();
             }
         }
-        private void BasicAttack()
+        public void BasicAttack()
         {
             this.InitializeShipCenterPosition();
             if (this.XDestionationPosition > this.XCenterPosition)
             {
                 this.MoveRight();
-                if(this.XDestionationPosition <= this.XCenterPosition)
+                if (this.XDestionationPosition <= this.XCenterPosition)
                 {
                     this.IsAttacking = false;
                     this.DateSinceLastAttack = DateTime.Now;
                 }
             }
-            else if(this.XDestionationPosition < this.XCenterPosition)
+            else if (this.XDestionationPosition < this.XCenterPosition)
             {
                 this.MoveLeft();
-                if(this.XDestionationPosition >= this.XCenterPosition)
+                if (this.XDestionationPosition >= this.XCenterPosition)
                 {
                     this.IsAttacking = false;
                     this.DateSinceLastAttack = DateTime.Now;
@@ -80,7 +80,7 @@
             }
             this.CountAttack++;
         }
-        private void TankAttack()
+        public void TankAttack()
         {
             this.InitializeShipCenterPosition();
             if (this.XDestionationPosition > this.XCenterPosition)
