@@ -9,6 +9,7 @@
         public int MaxYPosition { get; set; }
         public int ShooterID { get; set; }
         public int Speed { get; set; }
+        public int DealedDamage { get; set; }
         private void MoveUp()
         {
             this.YPosition -= this.Speed;

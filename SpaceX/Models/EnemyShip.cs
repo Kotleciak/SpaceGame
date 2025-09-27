@@ -8,13 +8,15 @@
         public bool IsAttacking { get; set; }
         public int CountAttack { get; set; }
         public EnemyShipClass Class { get; set; }
+        public int AttackedCount { get; set; }
+        public DateTime AttackTime { get; set; }
         public enum EnemyShipClass
         {
             Basic,
             Tank,
             Boss //I don't know for sure if I will implement it. I have good concept for it, but I don't know if I will have time to do it.
         }
-        public EnemyShip(bool isItTimeForTank)
+        public EnemyShip(bool isItTimeForTank, int Level)
         {
             this.XPosition = 1000;
             this.YPosition = -40;
@@ -23,10 +25,12 @@
             if (isItTimeForTank)
             {
                 this.Class = EnemyShip.EnemyShipClass.Tank;
+                this.Health = 200 + Level * 11;
             }
             else
             {
                 this.Class = EnemyShip.EnemyShipClass.Basic;
+                this.Health = 100 + Level * 9;
             }
         }
         public new void SetMaxPositions(int maxX, int maxY)
@@ -39,11 +43,11 @@
             if (this.XCenterPosition == UserXPosition)
             {
                 this.MoveRight();
-            }
-            else if (this.XCenterPosition == UserXPosition && this.MaxXPosition - this.XCenterPosition < 30)
+            }                                                       
+            else if (this.MaxXPosition - this.XCenterPosition < 30)
             {
                 this.MoveLeft();
-            }
+            }                                                               //this.XCenterPosition == UserXPosition && 
             else if (this.XCenterPosition > UserXPosition)
             {
                 this.MoveRight();
@@ -60,6 +64,14 @@
         public void BasicAttack()
         {
             this.InitializeShipCenterPosition();
+            if(this.XDestionationPosition >= this.MaxXPosition)
+            {
+                this.XDestionationPosition = this.MaxXPosition - 20;
+            }
+            if(this.XDestionationPosition <= 0)
+            {
+                this.XDestionationPosition = 20;
+            }
             if (this.XDestionationPosition > this.XCenterPosition)
             {
                 this.MoveRight();
@@ -83,6 +95,13 @@
         public void TankAttack()
         {
             this.InitializeShipCenterPosition();
+            if(this.AttackedCount >= 3)
+            {
+                this.AttackedCount = 0;
+                this.IsAttacking = false;
+                this.DateSinceLastAttack = DateTime.Now;
+                return;
+            }
             if (this.XDestionationPosition > this.XCenterPosition)
             {
                 this.MoveRight();
@@ -127,7 +146,13 @@
         }
         public void AttackOrAvoid(int UserXPosition, int UserYPosition)
         {
-            if(this.IsAttacking)
+            if (this.IsAttacking && (DateTime.Now - this.AttackTime).TotalSeconds > 11)
+            {
+                this.IsAttacking = false;
+                this.DateSinceLastAttack = DateTime.Now;
+                return;
+            }
+            if (this.IsAttacking)
             {
                 this.Attack();
             }
@@ -164,6 +189,7 @@
                 {
                     this.YDestinationPosition = UserYPosition - 300;
                 }
+                this.AttackTime = DateTime.Now;
                 this.Attack();
             }
         }

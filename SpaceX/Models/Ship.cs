@@ -4,6 +4,8 @@ namespace SpaceX.Models
 {
     public class Ship
     {
+        public static bool CanIncreaseMaxHealth = true;
+        public static bool CanIncreaseSpeed = true;
         public int ID { get; set; }
         public int YPosition { get; set; }
         public int XPosition { get; set; }
@@ -32,8 +34,8 @@ namespace SpaceX.Models
         }
         public void ResetShip()
         {
-            this.XPosition = 10;
-            this.YPosition = 10;
+            this.XPosition = (this.MaxXPosition / 2) - (this.ShipWidth / 2);
+            this.YPosition = (this.MaxYPosition - this.ShipHeight - 10) / 2;
             this.Health = 100;
             this.MaxHealth = 100;
             this.ShipWidth = 100;
@@ -59,12 +61,22 @@ namespace SpaceX.Models
                 this.YPosition -= this.Speed;
                 this.InitializeShipCenterPosition();
             }
+            else
+            {
+                this.YPosition = 0;
+                this.InitializeShipCenterPosition();
+            }
         }
         public void MoveDown()
         {
-            if(this.YPosition + this.Speed + this.ShipHeight < this.MaxYPosition)
+            if (this.YPosition + this.Speed + this.ShipHeight < this.MaxYPosition)
             {
                 this.YPosition += this.Speed;
+                this.InitializeShipCenterPosition();
+            }
+            else
+            {
+                this.YPosition = this.MaxYPosition - this.ShipHeight;
                 this.InitializeShipCenterPosition();
             }
         }
@@ -75,12 +87,22 @@ namespace SpaceX.Models
                 this.XPosition -= this.Speed;
                 this.InitializeShipCenterPosition();
             }
+            else
+            {
+                this.XPosition = 0;
+                this.InitializeShipCenterPosition();
+            }
         }
         public void MoveRight()
         {
             if (this.XPosition + this.Speed + this.ShipWidth < this.MaxXPosition)
             {
                 this.XPosition += this.Speed;
+                this.InitializeShipCenterPosition();
+            }
+            else
+            {
+                this.XPosition = this.MaxXPosition - this.ShipWidth;
                 this.InitializeShipCenterPosition();
             }
         }
@@ -102,6 +124,7 @@ namespace SpaceX.Models
                     break;
                 case 800:
                     this.MaxHealth = 1000;
+                    CanIncreaseMaxHealth = false;
                     break;
                 default:
                     return; // max reached
@@ -122,6 +145,7 @@ namespace SpaceX.Models
                     break;
                 case 30:
                     this.Speed = 35;
+                    CanIncreaseSpeed = false;
                     break;
                 default:
                     return; // max reached
@@ -141,8 +165,6 @@ namespace SpaceX.Models
                     return 400;
                 case 800:
                     return 500;
-                case 1000:
-                    return 600;
                 default:
                     return 0; // max reached
             }
@@ -159,8 +181,6 @@ namespace SpaceX.Models
                     return 300;
                 case 30:
                     return 400;
-                case 35:
-                    return 500;
                 default:
                     return 0; // max reached
             }
@@ -208,7 +228,8 @@ namespace SpaceX.Models
                 this.GetMaxHealthPrice(),
                 this.GetSpeedPrice(),
                 this.GetLevelOfBulletsDmgPrice(),
-                this.GetLevelOfBulletsSpeedPrice()
+                this.GetLevelOfBulletsSpeedPrice(),
+                400 // health refill price
             };
         }
         public void ShipTookDamage(int damage)

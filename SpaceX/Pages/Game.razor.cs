@@ -32,7 +32,7 @@ namespace SpaceX.Pages
         private int _canvasHeight = 400;
 
         private string _eqDisplayed = "none";
-        private string[] ShopElements = new string[] { "MaxHealth", "Speed", "Damage", "BulletS" };
+        private string[] ShopElements = new string[] { "MaxHealth", "Speed", "Damage", "BulletS", "Refill" };
         private int _shopElementIndex;
 
         private bool _isItTimeForTank = false;
@@ -61,7 +61,7 @@ namespace SpaceX.Pages
                 StateHasChanged();
                 myShip.SetMaxPositions(_canvasWidth, _canvasHeight);
                 myShip.XPosition = (_canvasWidth / 2) - (myShip.ShipWidth / 2);
-                myShip.YPosition = _canvasHeight - myShip.ShipHeight - 10;
+                myShip.YPosition = (_canvasHeight - myShip.ShipHeight - 10) / 2;
                 myShip.InitializeShipCenterPosition();
                 StateHasChanged();
                 await UpdateBullets();
@@ -69,6 +69,15 @@ namespace SpaceX.Pages
         }
         protected async Task Move(KeyboardEventArgs e)
         {
+            if (_gameOptions.GameState == GameOptions.State.GameLost)
+            {
+                if (e.Key == "r")
+                {
+                    await ResetGame();
+                    await JS.InvokeVoidAsync("HideGameOver");
+                }
+                return;
+            }
             if (_gameOptions.IsTutorial)
             {
                 if(e.Key == "w" || e.Key == "a" || e.Key == "s" || e.Key == "d")
@@ -136,6 +145,10 @@ namespace SpaceX.Pages
         }
         private async Task SendNewBullet(int ID, string who)
         {
+            if (_gameOptions.GameState == GameOptions.State.GameLost)
+            {
+                return;
+            }
             if (_gameOptions.IsTutorial)
             {
                 await NextStepTutorial("clicked");
@@ -153,6 +166,7 @@ namespace SpaceX.Pages
                 newBullet.YPosition = myShip.YPosition - 20;
                 newBullet.StartYPosition = myShip.YPosition;
                 newBullet.Speed = 10 * myShip.LevelOfBulletsSpeed;
+                newBullet.DealedDamage = 10 * myShip.LevelOfBulletsDmg;
             }
             else if(who == "enemy")
             {
@@ -161,6 +175,7 @@ namespace SpaceX.Pages
                 newBullet.YPosition = enemy.YPosition + 20;
                 newBullet.StartYPosition = enemy.YPosition + enemy.ShipHeight;
                 newBullet.Speed = 10 + _gameOptions.Level;
+                newBullet.DealedDamage = 10 + _gameOptions.Level;
             }
             else
             {
@@ -169,6 +184,7 @@ namespace SpaceX.Pages
                 newBullet.YPosition = boss.YPosition + 40;
                 newBullet.StartYPosition = boss.YPosition + boss.ShipHeight + 20;
                 newBullet.Speed = 10 + _gameOptions.Level;
+                newBullet.DealedDamage = 10 + Convert.ToInt32(_gameOptions.Level * 1.4);
             }
             _bullets.Add(newBullet);
         }
@@ -176,7 +192,8 @@ namespace SpaceX.Pages
         {
             Bomb bomb = new Bomb(myShip.YCenterPosition, enemy)
             {
-                Speed = 5 + _gameOptions.Level / 2                                                  //I will have to change this if I want boss
+                Speed = 5 + _gameOptions.Level / 2,
+                DealedDamage = 70 + Convert.ToInt32(_gameOptions.Level * 2)
             };
             _bombs.Add(bomb);
         }
@@ -186,15 +203,15 @@ namespace SpaceX.Pages
                                               + Math.Pow(myShip.YCenterPosition - bomb.YPosition, 2);
             if (distanceSquared < 1700)
             {
-                myShip.ShipTookDamage(30);
+                myShip.ShipTookDamage(bomb.DealedDamage);
             }
             else if (distanceSquared < 2500)
             {
-                myShip.ShipTookDamage(20);
+                myShip.ShipTookDamage(bomb.DealedDamage / 3 * 2);
             }
             else if (distanceSquared < 3100)
             {
-                myShip.ShipTookDamage(10);
+                myShip.ShipTookDamage(bomb.DealedDamage / 3);
             }
             await JS.InvokeVoidAsync("UpdateHealt", myShip.Health, myShip.MaxHealth);
         }
@@ -288,6 +305,7 @@ namespace SpaceX.Pages
                         case EnemyShip.EnemyShipClass.Tank:
                             await SendNewBomb(enemy);
                             enemy.CountAttack = 0;
+                            enemy.AttackedCount++;
                             break;
                         case EnemyShip.EnemyShipClass.Basic:
                             await SendNewBullet(enemy.ID, "enemy");
@@ -309,40 +327,62 @@ namespace SpaceX.Pages
             {
                 await this._context.DrawImageAsync(_bossImage, boss.XPosition, boss.YPosition, boss.ShipWidth, boss.ShipHeight);
             }
-            if (!_gameOptions.IsTutorial && _asteroids.Count == 0 & _enemyShips.Count == 0 && _bosses.Count == 0)
+            if (!_gameOptions.IsTutorial && _asteroids.Count == 0 & _enemyShips.Count == 0 && _bosses.Count == 0 && _gameOptions.GameState != GameOptions.State.GameLost)
             {
                 await NextLevel();
             }
             if(_gameOptions.Level % 2 == 0 && _bosses.Count > 0)
             {
                 int stage = Boss.AttackPhase;
-                Console.WriteLine(stage);
                 foreach(var boss in _bosses)
                 {
+                    Boss secondBoss = null;
+                    if (Boss.numberOfBossesAtRound == 2)
+                    {
+                        if(boss.ID == 1)
+                        {
+                            secondBoss = _bosses.ElementAt(1);
+                        }
+                        else
+                        {
+                            secondBoss = _bosses.ElementAt(0);
+                        }
+                    }
+                    else
+                    {
+                        Boss.ForWhichBossIsItTimeToDropBombs = 0;
+                    }
                     switch (stage)
                     {
                         case 0:                //avoiding user
-                            boss.AvoidUser(myShip.XCenterPosition, myShip.YCenterPosition);
-                            boss.IsItTimeForRainAttack(_bosses.Count);
+                            boss.AvoidUser(myShip.XCenterPosition, myShip.YCenterPosition, secondBoss);
+                            boss.IsItTimeForRainAttack(_bosses.Count, boss.MaxXPosition - 20);
                             break;
                         case 1:                  //finding correct position if there is more than 1 boss
                             string result = boss.FindCorrectPosition(_bosses.ElementAt(0).XCenterPosition, _bosses.ElementAt(1).XCenterPosition);
                             if(result == "Ship1")
                             {
-                                _bosses.ElementAt(0).MoveRight();
+                                _bosses.ElementAt(0).MoveRight(secondBoss);
                             }
                             else if(result == "Ship2")
                             {
-                                _bosses.ElementAt(0).MoveRight();
+                                _bosses.ElementAt(0).MoveRight(secondBoss);
                             }
                             else
                             {
                                 Boss.AttackPhase = 2;
-                                _bosses.ElementAt(0).XDestionationPosition = _bosses.ElementAt(0).MaxXPosition - 20;
-                                _bosses.ElementAt(1).XDestionationPosition = _bosses.ElementAt(1).MaxXPosition - 80;
+                                if(_bosses.Count == 2)
+                                {
+                                    _bosses.ElementAt(0).XDestionationPosition = _bosses.ElementAt(0).MaxXPosition - 20;
+                                    _bosses.ElementAt(1).XDestionationPosition = _bosses.ElementAt(1).MaxXPosition - 80;
+                                }
+                                else
+                                {
+                                    boss.XDestionationPosition = 20;
+                                }
                             }
                             break;
-                        case 2:                        //attacking to left side
+                        case 2:                        //attacking to right side
                             if(boss.CountAttack >= 4)
                             {
                                 await SendNewBullet(boss.ID, "boss");
@@ -352,14 +392,21 @@ namespace SpaceX.Pages
                             {
                                 boss.CountAttack++;
                             }
-                            if(boss.MoveToDestinationPosition())
+                            if(boss.MoveToDestinationPosition(secondBoss))
                             {
                                 Boss.AttackPhase = 3;
-                                _bosses.ElementAt(0).XDestionationPosition = 20;
-                                _bosses.ElementAt(1).XDestionationPosition = 80;
+                                if(Boss.numberOfBossesAtRound == 2)
+                                {
+                                    _bosses.ElementAt(0).XDestionationPosition = 20;
+                                    _bosses.ElementAt(1).XDestionationPosition = 80;
+                                }
+                                else
+                                {
+                                    boss.XDestionationPosition = 20;
+                                }
                             }
                             break;
-                        case 3:                        //attacking to right side
+                        case 3:                        //attacking to left side
                             if (boss.CountAttack >= 4)
                             {
                                 await SendNewBullet(boss.ID, "boss");
@@ -369,26 +416,58 @@ namespace SpaceX.Pages
                             {
                                 boss.CountAttack++;
                             }
-                            if (boss.MoveToDestinationPosition())
+                            if (boss.MoveToDestinationPosition(secondBoss))
                             {
                                 Boss.AttackPhase = 4;
-                                _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).XDestionationPosition = myShip.XCenterPosition;
-                                _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).YDestinationPosition = myShip.YCenterPosition - 300;
+                                if(_bosses.Count == 2)
+                                {
+                                    _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).XDestionationPosition = myShip.XCenterPosition;
+                                    if (myShip.YCenterPosition - 300 < 0)
+                                    {
+                                        _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).YDestinationPosition = 50;
+                                    }
+                                    else
+                                    {
+                                        _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).YDestinationPosition = myShip.YCenterPosition - 300;
+                                    }
+                                }
+                                else
+                                {
+                                    if (myShip.YCenterPosition - 300 < 0)
+                                    {
+                                        _bosses.ElementAt(0).YDestinationPosition = 50;
+                                    }
+                                    else
+                                    {
+                                        _bosses.ElementAt(0).YDestinationPosition = myShip.YCenterPosition - 300;
+                                    }
+                                }
                             }
                             break;
                         case 4:                        //attacking by bombs and avoiding
+                            if(Boss.numberOfBossesAtRound == 2)
+                            {
+                                _bosses.ElementAt(Boss.ForWhichBossIsItTimeToAvoidUser).AvoidUser(myShip.XCenterPosition, myShip.YCenterPosition);
+                            }
                             _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).TankAttack();
-                            _bosses.ElementAt(Boss.ForWhichBossIsItTimeToAvoidUser).AvoidUser(myShip.XCenterPosition, myShip.YCenterPosition);
                             if (Math.Abs(_bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).XCenterPosition - _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).XDestionationPosition) < 30)
                             {
                                 await SendNewBomb(_bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs));
                                 Boss.AttackPhase = 5;
-                                _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).XDestionationPosition = _bosses.ElementAt(Boss.ForWhichBossIsItTimeToAvoidUser).XCenterPosition;
-                                _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).YDestinationPosition = _bosses.ElementAt(Boss.ForWhichBossIsItTimeToAvoidUser).YPosition;
+                                if(Boss.numberOfBossesAtRound == 2)
+                                {
+                                    _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).XDestionationPosition = _bosses.ElementAt(Boss.ForWhichBossIsItTimeToAvoidUser).XCenterPosition;
+                                    _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).YDestinationPosition = _bosses.ElementAt(Boss.ForWhichBossIsItTimeToAvoidUser).YPosition;
+                                }
+                                else
+                                {
+                                    _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).XDestionationPosition = 50;
+                                    _bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).YDestinationPosition = 0;
+                                }
                             }
                             break;
                         case 5:                        //back to first boss
-                            if(_bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).GoBackToStartYPosition())
+                            if(_bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).GoBackToStartYPosition(secondBoss) && Boss.numberOfBossesAtRound == 2)
                             {
                                 Boss.AttackPhase = 0;
                                 if(Boss.ForWhichBossIsItTimeToDropBombs == 0)
@@ -402,6 +481,13 @@ namespace SpaceX.Pages
                                     Boss.ForWhichBossIsItTimeToAvoidUser = 1;
                                 }
                             }
+                            if(Boss.numberOfBossesAtRound == 1)
+                            {
+                                if (_bosses.ElementAt(Boss.ForWhichBossIsItTimeToDropBombs).GoBackToStartYPosition(secondBoss))
+                                {
+                                    Boss.AttackPhase = 0;
+                                }
+                            }
                             break;
                         default:
 
@@ -413,10 +499,9 @@ namespace SpaceX.Pages
         private async Task NextLevel()
         {
             _gameOptions.Level++;
-            if(_gameOptions.Level % 2 == 0)   //for testing I changed it from 10 to 2
+            if(_gameOptions.Level % 10 == 0)   //for testing I changed it from 10 to 2
             {
-                //Maybe add some kind of boss?
-                Boss boss = new Boss(_isItTimeForTank)
+                Boss boss = new Boss(_isItTimeForTank, _gameOptions.Level)
                 {
                     ID = 1,
                     XPosition = (_canvasWidth / 2) - 75,
@@ -424,19 +509,23 @@ namespace SpaceX.Pages
                 };
                 boss.SetMaxPositions(_canvasWidth, _canvasHeight);
                 _bosses.Add(boss);
-                Boss boss2 = new Boss(_isItTimeForTank)
+                
+                Boss boss2 = new Boss(_isItTimeForTank, _gameOptions.Level)
                 {
                     ID = 2,
                     XPosition = (_canvasWidth / 2) + 75,
                     YPosition = 5
                 };
                 boss2.SetMaxPositions(_canvasWidth, _canvasHeight);
+                
                 _bosses.Add(boss2);
+                
+                
             }
-            else if(_gameOptions.Level % 20 == 0)     //changed form 2 to 20
+            else if(_gameOptions.Level % 2 == 0)     //changed form 2 to 20
             {
                 //enemyship
-                EnemyShip enemyShip = new EnemyShip(_isItTimeForTank)
+                EnemyShip enemyShip = new EnemyShip(_isItTimeForTank, _gameOptions.Level)
                 {
                     ID = 1,
                 };
@@ -458,11 +547,28 @@ namespace SpaceX.Pages
             }
             StateHasChanged();
         }
+        private async Task GameLost()
+        {
+            _gameOptions.GameState = GameOptions.State.GameLost;
+            StateHasChanged();
+            await JS.InvokeVoidAsync("ShowGameOver");
+            myShip.Health = 0;
+            await JS.InvokeVoidAsync("UpdateHealt", 0, myShip.MaxHealth);
+        }
+        private async Task ResetGame()
+        {
+            myShip.ResetShip();
+            _gameOptions.StartNewGame();
+            _gameOptions.GameState = GameOptions.State.CurrentGame;
+            await JS.InvokeVoidAsync("UpdateHealt", myShip.Health, myShip.MaxHealth);
+            await JS.InvokeVoidAsync("StartTutorialAgain");
+        }
         private async Task CheckIfBulletsTookDamage()
         {
             var bulletsToRemove = new HashSet<Bullet>();
             var asteroidsDestroyed = new HashSet<Asteroid>();
             var enemyShipsDestroyed = new HashSet<EnemyShip>();
+            var bossesDestroyed = new HashSet<Boss>();
             var bombsToRemove = new HashSet<Bomb>();
 
 
@@ -476,7 +582,7 @@ namespace SpaceX.Pages
                                               + Math.Pow(asteroid.YCenterPosition - bullet.YPosition, 2);
                     if (distanceSquared < asteroid.SquaredRadius && bullet.ShooterID == 0)
                     {
-                        _gameOptions.Coins = _gameOptions.Coins + _asteroids.Where(x => x == asteroid).FirstOrDefault().AsteroidHit(myShip.LevelOfBulletsDmg * 10);
+                        _gameOptions.Coins = _gameOptions.Coins + _asteroids.Where(x => x == asteroid).FirstOrDefault().AsteroidHit(bullet.DealedDamage);
                         asteroid.NumberOfTimesBeingHit++;
                         if (asteroid.Health <= 0)
                         {
@@ -491,11 +597,27 @@ namespace SpaceX.Pages
                                           + Math.Pow(enemy.YCenterPosition - bullet.YPosition, 2);
                     if (distanceSquared < 2500 && bullet.ShooterID == 0)
                     {
-                        enemy.ShipTookDamage(myShip.LevelOfBulletsDmg * 10);
+                        enemy.ShipTookDamage(bullet.DealedDamage);
                         if (!enemy.IsAlive())
                         {
-                            _gameOptions.Coins = _gameOptions.Coins + 20; //I set 20 as placeholder
+                            _gameOptions.Coins = _gameOptions.Coins + 20 + _gameOptions.Level / 4; //I set 20 as placeholder
                             enemyShipsDestroyed.Add(enemy);
+                        }
+                        bulletsToRemove.Add(bullet);
+                    }
+                }
+                foreach(var boss in _bosses)
+                {
+                    double distanceSquared = Math.Pow(boss.XCenterPosition - bullet.XPosition, 2)
+                                          + Math.Pow(boss.YCenterPosition - bullet.YPosition, 2);
+                    if (distanceSquared < 3600 && bullet.ShooterID == 0)
+                    {
+                        boss.ShipTookDamage(bullet.DealedDamage);
+                        if (!boss.IsAlive())
+                        {
+                            _gameOptions.Coins = _gameOptions.Coins + 80 + _gameOptions.Level / 3; //I set 100 as placeholder
+                            bossesDestroyed.Add(boss);
+                            Boss.numberOfBossesAtRound--;
                         }
                         bulletsToRemove.Add(bullet);
                     }
@@ -504,8 +626,17 @@ namespace SpaceX.Pages
                                           + Math.Pow(myShip.YCenterPosition - bullet.YPosition, 2);
                 if (myShipDistanceSquared < 2500 && bullet.ShooterID != 0)
                 {
-                    myShip.ShipTookDamage(10);
+                    myShip.ShipTookDamage(bullet.DealedDamage);
                     bulletsToRemove.Add(bullet);
+                    if(!myShip.IsAlive())
+                    {
+                        bulletsToRemove = _bullets.ToHashSet();
+                        asteroidsDestroyed = _asteroids.ToHashSet();
+                        enemyShipsDestroyed = _enemyShips.ToHashSet();
+                        bossesDestroyed = _bosses.ToHashSet();
+                        bombsToRemove = _bombs.ToHashSet();
+                        await GameLost();
+                    }
                     await JS.InvokeVoidAsync("UpdateHealt", myShip.Health, myShip.MaxHealth);
                 }
             }
@@ -515,8 +646,17 @@ namespace SpaceX.Pages
                                           + Math.Pow(myShip.YCenterPosition - bomb.StartYPosition, 2);
                 if (myShipDistanceSquared < 3100)
                 {
-                    myShip.ShipTookDamage(30);
+                    myShip.ShipTookDamage(bomb.DealedDamage);
                     bombsToRemove.Add(bomb);
+                    if (!myShip.IsAlive())
+                    {
+                        bulletsToRemove = _bullets.ToHashSet();
+                        asteroidsDestroyed = _asteroids.ToHashSet();
+                        enemyShipsDestroyed = _enemyShips.ToHashSet();
+                        bossesDestroyed = _bosses.ToHashSet();
+                        bombsToRemove = _bombs.ToHashSet();
+                        await GameLost();
+                    }
                 }
                 await JS.InvokeVoidAsync("UpdateHealt", myShip.Health, myShip.MaxHealth);
             }
@@ -534,6 +674,10 @@ namespace SpaceX.Pages
             {
                 _enemyShips.Remove(enemy);
             }
+            foreach (var boss in bossesDestroyed)
+            {
+                _bosses.Remove(boss);
+            }
             foreach (var bomb in bombsToRemove)
             {
                 _bombs.Remove(bomb);
@@ -542,6 +686,10 @@ namespace SpaceX.Pages
         }
         private async Task OpenEquipment()
         {
+            if (_gameOptions.GameState == GameOptions.State.GameLost)
+            {
+                return;
+            }
             if (_gameOptions.IsTutorial)
             {
                 await NextStepTutorial("opened");
@@ -567,7 +715,7 @@ namespace SpaceX.Pages
         }
         private async Task MoveShopElementDown()
         {
-            if (_shopElementIndex < 3 && _eqDisplayed == "flex") 
+            if (_shopElementIndex < 4 && _eqDisplayed == "flex") //changed from 3 to 4
             {
                 _shopElementIndex++;
                 await JS.InvokeVoidAsync("ShopElementChanged", ShopElements[_shopElementIndex], myShip.GetCurrentShopPrices());
@@ -577,25 +725,47 @@ namespace SpaceX.Pages
         {
             if (_eqDisplayed == "flex" && _gameOptions.Coins > myShip.GetCurrentShopPrices()[_shopElementIndex])
             {
-                _gameOptions.Coins -= myShip.GetCurrentShopPrices()[_shopElementIndex];
+                
                 switch (ShopElements[_shopElementIndex])
                 {
                     case "MaxHealth":
-                        myShip.IncreaseMaxHealth();
+                        if (Ship.CanIncreaseMaxHealth)
+                        {
+                            int previousMaxHealth = myShip.MaxHealth;
+                            _gameOptions.Coins -= myShip.GetCurrentShopPrices()[_shopElementIndex];
+                            myShip.IncreaseMaxHealth();
+                            int Proportion = previousMaxHealth / myShip.Health;
+                            myShip.Health = myShip.Health * myShip.MaxHealth / previousMaxHealth;
+                            await JS.InvokeVoidAsync("UpdateHealt", myShip.Health, myShip.MaxHealth);
+                        }
                         break;
                     case "Speed":
+                        if(Ship.CanIncreaseSpeed)
+                        {
+                            _gameOptions.Coins -= myShip.GetCurrentShopPrices()[_shopElementIndex];
+                        }
                         myShip.IncreaseSpeed();
                         break;
                     case "Damage":
-                        if(myShip.LevelOfBulletsDmg + 1 < 5)
+                        if (myShip.LevelOfBulletsDmg < 6)
                         {
+                            _gameOptions.Coins -= myShip.GetCurrentShopPrices()[_shopElementIndex];
                             myShip.LevelOfBulletsDmg++;
                         }
                         break;
                     case "BulletS":
-                        if(myShip.LevelOfBulletsSpeed + 1 < 5)
+                        if (myShip.LevelOfBulletsSpeed < 6)
                         {
+                            _gameOptions.Coins -= myShip.GetCurrentShopPrices()[_shopElementIndex];
                             myShip.LevelOfBulletsSpeed++;
+                        }
+                        break;
+                    case "Refill":
+                        if (myShip.Health < myShip.MaxHealth)
+                        {
+                            _gameOptions.Coins -= myShip.GetCurrentShopPrices()[_shopElementIndex];
+                            myShip.Health = myShip.MaxHealth;
+                            await JS.InvokeVoidAsync("UpdateHealt", myShip.Health, myShip.MaxHealth);
                         }
                         break;
                 } 

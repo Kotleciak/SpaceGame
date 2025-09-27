@@ -21,11 +21,19 @@
             <span class="InventoryShopElement-Text">Bullet's Speed</span>
             <span class="PriceText" id="PriceText-3"></span>
 		</div>
+        <div class="InventoryShopElement" id="InventoryShopElement-Refill">
+            <span class="InventoryShopElement-Text">Refill health</span>
+            <span class="PriceText" id="PriceText-4"></span>
+        </div>
         <div id="InventoryHintText">
             <p>Use arrow keys to navigate and space to commit purchase</p>
         </div>
     </div>
-
+    <div id="GameOverDisplay">
+        <p>Game Over</p>
+        <img src="/images/Retry.png" />
+        <p>Click R to restart</p>
+    </div>
 </div>
 <div style="outline: none; position:absolute;" @ref="BulletsContainer" id="BulletsContainer">
     <BECanvas Width="@_canvasWidth" Height="@_canvasHeight" @ref="_bulletCanvasReference"></BECanvas>
@@ -81,30 +89,72 @@
     }
     window.getScreenWidth = () => {
         let height = document.getElementById("CanvaContainer").offsetWidth;
+		console.log(height);
         return height;
     }
         window.ShopElementChanged = (currentElement, currentPrices) => {
-            console.log("It was involved")
+            /*
             for (let i = 0; i < currentPrices.length; i++) {
                 document.getElementById("PriceText-" + i).innerText = currentPrices[i];
-				console.log("PriceText-" + i + " set to " + currentPrices[i]);
             }
             for(let i = 0; i < currentPrices.length; i++)
             {
-				console.log("Checking color for PriceText-" + i);
                 let playerCoins = parseInt(document.getElementById("CoinsContainer").textContent.split(" ")[1]);
-				console.log("Player coins: " + playerCoins);
-                if(parseInt(document.getElementById("PriceText-" + i).textContent) > playerCoins)
+                let price = 0;
+                if(document.getElementById("PriceText-" + i).textContent != "Max")
+                {
+                    price = parseInt(document.getElementById("PriceText-" + i).textContent)
+                }
+                if(price > playerCoins)
                 {
                     document.getElementById("PriceText-" + i).style.setProperty("color", "red", "important");
-                    console.log("not engoug " + i)
                 }
                 else
                 {
                     document.getElementById("PriceText-" + i).style.color = "white";
-					console.log("enough " + i)
+                }
+                if(parseInt(document.getElementById("PriceText-" + i).textContent) == 0)
+                {
+                    console.log("it is ivnoked")
+					document.getElementById("PriceText-" + i).style.color = "red";
+					document.getElementById("InventoryShopElement-" + i).textContent = "Max";
                 }
             }
+            for (let element of document.getElementById("EquipmentDiv").children) {
+                element.style.border = "none";
+            }
+            document.getElementById("InventoryShopElement-" + currentElement).style.border = "0.5px solid yellow";
+            */
+           // --- 1. Ustaw ceny ---
+            for (let i = 0; i < currentPrices.length; i++) {
+                document.getElementById("PriceText-" + i).innerText = currentPrices[i];
+            }
+
+            // --- 2. Kolory i "Max" ---
+            for (let i = 0; i < currentPrices.length; i++) {
+                let playerCoins = parseInt(document.getElementById("CoinsContainer").textContent.split(" ")[1]);
+                let priceTextEl = document.getElementById("PriceText-" + i);
+                let price = 0;
+
+                if (priceTextEl.textContent !== "Max") {
+                    price = parseInt(priceTextEl.textContent);
+                }
+
+                if (price === 0) {
+                    console.log("it is invoked");
+                    priceTextEl.textContent = "Max";
+                    priceTextEl.style.color = "red";
+                    continue; // pomijamy dalsze sprawdzanie koloru
+                }
+
+                if (price > playerCoins) {
+                    priceTextEl.style.setProperty("color", "red", "important");
+                } else {
+                    priceTextEl.style.color = "white";
+                }
+            }
+
+            // --- 3. Obramowanie aktywnego elementu ---
             for (let element of document.getElementById("EquipmentDiv").children) {
                 element.style.border = "none";
             }
@@ -112,11 +162,11 @@
         };
 
     window.UpdateTutorial = (previousTutorial, currentTutorial) => {
-		document.getElementById(previousTutorial).remove();
+		document.getElementById(previousTutorial).style.display = "none";
 		document.getElementById(currentTutorial).style.display = "flex";
     }
     window.EndTutorial = (lastTutorial) => {
-        document.getElementById(lastTutorial).remove();
+        document.getElementById(lastTutorial).style.display = "none";
 	}
     window.UpdateHealt = (health, maxHealth) => {
 		if(health >= 0)
@@ -139,5 +189,14 @@
         {
             document.getElementById("HealthBar").style.width = "0px";
 		}
+    }
+    window.ShowGameOver = () => {
+        document.getElementById("GameOverDisplay").style.display = "flex";
+	}
+    window.HideGameOver = () => {
+        document.getElementById("GameOverDisplay").style.display = "none";
+	}
+    window.StartTutorialAgain = () => {
+		document.getElementById("MoveTutorial").style.display = "flex";
     }
 </script>
